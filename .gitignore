@@ -1,0 +1,20 @@
+# Build output
+bin/
+obj/
+publish/
+
+# User and IDE state
+*.user
+*.suo
+.vs/
+.idea/
+.vscode/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.cache
+
+# Local runtime data
+settings.json
+cache/
