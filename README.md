@@ -69,6 +69,7 @@ Available settings:
   - Glassy cyan
   - Dark purple
 - Manual theme editor:
+  - Resize the whole widget
   - Position and resize each text element
   - Pick fonts and font sizes
   - Adjust colors and alignment

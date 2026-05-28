@@ -8,6 +8,8 @@ public sealed class ThemeEditorForm : Form
 {
     private readonly ComboBox _themeBox = new();
     private readonly ComboBox _elementBox = new();
+    private readonly NumericUpDown _widgetWidthBox = CreateNumber(160, 900, 0);
+    private readonly NumericUpDown _widgetHeightBox = CreateNumber(80, 520, 0);
     private readonly NumericUpDown _xBox = CreateNumber(-200, 800, 0);
     private readonly NumericUpDown _yBox = CreateNumber(-200, 800, 0);
     private readonly NumericUpDown _widthBox = CreateNumber(0, 800, 0);
@@ -80,6 +82,8 @@ public sealed class ThemeEditorForm : Form
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 42));
 
         AddRow(layout, "Theme", _themeBox);
+        AddRow(layout, "Widget width", _widgetWidthBox, "px");
+        AddRow(layout, "Widget height", _widgetHeightBox, "px");
         AddRow(layout, "Text element", _elementBox);
         AddSeparator(layout, "Position");
         AddRow(layout, "X", _xBox, "px");
@@ -110,7 +114,7 @@ public sealed class ThemeEditorForm : Form
 
         foreach (Control control in new Control[]
         {
-            _xBox, _yBox, _widthBox, _heightBox, _fontSizeBox, _shadowAlphaBox, _shadowXBox, _shadowYBox
+            _widgetWidthBox, _widgetHeightBox, _xBox, _yBox, _widthBox, _heightBox, _fontSizeBox, _shadowAlphaBox, _shadowXBox, _shadowYBox
         })
         {
             if (control is NumericUpDown box)
@@ -221,6 +225,8 @@ public sealed class ThemeEditorForm : Form
         _loading = true;
         WidgetThemeDefinition theme = CurrentTheme();
         _themeBox.SelectedValue = theme.Key;
+        _widgetWidthBox.Value = CurrentCustomization().Width ?? theme.Size.Width;
+        _widgetHeightBox.Value = CurrentCustomization().Height ?? theme.Size.Height;
         _shadowAlphaBox.Value = CurrentCustomization().ShadowAlpha ?? theme.ShadowAlpha;
         _shadowXBox.Value = CurrentCustomization().ShadowOffsetX ?? 1;
         _shadowYBox.Value = CurrentCustomization().ShadowOffsetY ?? 1;
@@ -258,6 +264,8 @@ public sealed class ThemeEditorForm : Form
         }
 
         WidgetThemeCustomization customization = CurrentCustomization();
+        customization.Width = (int)_widgetWidthBox.Value;
+        customization.Height = (int)_widgetHeightBox.Value;
         customization.ShadowAlpha = (int)_shadowAlphaBox.Value;
         customization.ShadowOffsetX = (int)_shadowXBox.Value;
         customization.ShadowOffsetY = (int)_shadowYBox.Value;
@@ -560,7 +568,8 @@ internal sealed class ThemePreviewControl : Control
         e.Graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
         e.Graphics.Clear(BackColor);
 
-        Rectangle target = FitRectangle(_theme.Size, ClientRectangle);
+        Size previewSize = GetThemeSize();
+        Rectangle target = FitRectangle(previewSize, ClientRectangle);
         if (_themeImage is not null)
         {
             e.Graphics.DrawImage(_themeImage, target);
@@ -631,5 +640,12 @@ internal sealed class ThemePreviewControl : Control
             target.Y + (target.Height - height) / 2,
             width,
             height);
+    }
+
+    private Size GetThemeSize()
+    {
+        return new Size(
+            Math.Clamp(_customization?.Width ?? _theme.Size.Width, 160, 900),
+            Math.Clamp(_customization?.Height ?? _theme.Size.Height, 80, 520));
     }
 }

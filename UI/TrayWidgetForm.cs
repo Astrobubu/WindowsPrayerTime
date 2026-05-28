@@ -242,7 +242,7 @@ public sealed class TrayWidgetForm : Form
 
         if (IsThemedAboveTaskbar)
         {
-            Size = _theme.Size;
+            Size = GetThemeSize();
             MinimumSize = Size;
             MaximumSize = Size;
             Padding = Padding.Empty;
@@ -327,6 +327,9 @@ public sealed class TrayWidgetForm : Form
         Color accent = state.IsIqamahCountdown ? _theme.WarningColor : _theme.AccentColor;
         Color countdown = state.IsIqamahCountdown ? _theme.WarningColor : _theme.CountdownColor;
 
+        GraphicsState textState = graphics.Save();
+        graphics.ScaleTransform(Width / (float)_theme.Size.Width, Height / (float)_theme.Size.Height);
+
         DrawThemeText(
             graphics,
             WidgetTextElementKeys.Primary,
@@ -379,6 +382,14 @@ public sealed class TrayWidgetForm : Form
             FontStyle.Regular,
             _theme.MutedColor,
             _theme.DetailAlignment);
+        graphics.Restore(textState);
+    }
+
+    private Size GetThemeSize()
+    {
+        return new Size(
+            Math.Clamp(_customization?.Width ?? _theme.Size.Width, 160, 900),
+            Math.Clamp(_customization?.Height ?? _theme.Size.Height, 80, 520));
     }
 
     private void DrawThemeText(

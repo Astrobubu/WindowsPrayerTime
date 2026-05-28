@@ -145,6 +145,8 @@ public sealed class AppSettings
         foreach (WidgetThemeCustomization customization in WidgetThemeCustomizations.Values)
         {
             customization.Elements ??= new Dictionary<string, WidgetTextCustomization>(StringComparer.OrdinalIgnoreCase);
+            customization.Width = customization.Width is null ? null : Math.Clamp(customization.Width.Value, 160, 900);
+            customization.Height = customization.Height is null ? null : Math.Clamp(customization.Height.Value, 80, 520);
             customization.ShadowAlpha = customization.ShadowAlpha is null ? null : Math.Clamp(customization.ShadowAlpha.Value, 0, 255);
             customization.ShadowOffsetX = customization.ShadowOffsetX is null ? null : Math.Clamp(customization.ShadowOffsetX.Value, -12, 12);
             customization.ShadowOffsetY = customization.ShadowOffsetY is null ? null : Math.Clamp(customization.ShadowOffsetY.Value, -12, 12);
@@ -154,6 +156,8 @@ public sealed class AppSettings
 
 public sealed class WidgetThemeCustomization
 {
+    public int? Width { get; set; }
+    public int? Height { get; set; }
     public int? ShadowAlpha { get; set; }
     public int? ShadowOffsetX { get; set; }
     public int? ShadowOffsetY { get; set; }
@@ -163,6 +167,8 @@ public sealed class WidgetThemeCustomization
     {
         return new WidgetThemeCustomization
         {
+            Width = Width,
+            Height = Height,
             ShadowAlpha = ShadowAlpha,
             ShadowOffsetX = ShadowOffsetX,
             ShadowOffsetY = ShadowOffsetY,
