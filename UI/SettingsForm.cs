@@ -14,6 +14,7 @@ public sealed class SettingsForm : Form
     private readonly ComboBox _schoolBox = new();
     private readonly CheckBox _showWidgetBox = new();
     private readonly ComboBox _placementBox = new();
+    private readonly ComboBox _themeBox = new();
     private readonly CheckBox _startWithWindowsBox = new();
     private readonly CheckBox _adhanAlertsBox = new();
     private readonly CheckBox _iqamahAlertsBox = new();
@@ -162,6 +163,14 @@ public sealed class SettingsForm : Form
         _placementBox.ValueMember = nameof(ComboItem.Value);
         AddRow(layout, "Countdown position", _placementBox);
 
+        _themeBox.DropDownStyle = ComboBoxStyle.DropDownList;
+        _themeBox.DisplayMember = nameof(ThemeOption.Text);
+        _themeBox.ValueMember = nameof(ThemeOption.Key);
+        _themeBox.DataSource = WidgetThemeCatalog.All
+            .Select(theme => new ThemeOption(theme.DisplayName, theme.Key))
+            .ToList();
+        AddRow(layout, "Widget theme", _themeBox);
+
         AddFullRow(layout, _startWithWindowsBox);
         AddFullRow(layout, _adhanAlertsBox);
         AddFullRow(layout, _iqamahAlertsBox);
@@ -205,6 +214,7 @@ public sealed class SettingsForm : Form
             StringComparison.OrdinalIgnoreCase)
             ? 1
             : 0;
+        _themeBox.SelectedValue = Settings.WidgetTheme;
         _startWithWindowsBox.Checked = Settings.StartWithWindows;
         _adhanAlertsBox.Checked = Settings.AdhanAlertsEnabled;
         _iqamahAlertsBox.Checked = Settings.IqamahAlertsEnabled;
@@ -251,6 +261,7 @@ public sealed class SettingsForm : Form
         Settings.WidgetPlacement = _placementBox.SelectedIndex == 1
             ? WidgetPlacementOptions.TaskbarBand
             : WidgetPlacementOptions.AboveTaskbar;
+        Settings.WidgetTheme = _themeBox.SelectedValue as string ?? WidgetThemeOptions.GoldDarkBlue;
         Settings.StartWithWindows = _startWithWindowsBox.Checked;
         Settings.AdhanAlertsEnabled = _adhanAlertsBox.Checked;
         Settings.IqamahAlertsEnabled = _iqamahAlertsBox.Checked;
@@ -409,12 +420,15 @@ public sealed class SettingsForm : Form
             AdhanLeadMinutes = settings.AdhanLeadMinutes,
             ShowIqamahCountdownAfterAdhan = settings.ShowIqamahCountdownAfterAdhan,
             WidgetPlacement = settings.WidgetPlacement,
+            WidgetTheme = settings.WidgetTheme,
             IqamahOffsetsMinutes = new Dictionary<string, int>(settings.IqamahOffsetsMinutes, StringComparer.OrdinalIgnoreCase),
             PrayerAdjustmentsMinutes = new Dictionary<string, int>(settings.PrayerAdjustmentsMinutes, StringComparer.OrdinalIgnoreCase)
         };
     }
 
     private sealed record ComboItem(string Text, int Value);
+
+    private sealed record ThemeOption(string Text, string Key);
 
     private sealed record MethodOption(int Id, string Name)
     {

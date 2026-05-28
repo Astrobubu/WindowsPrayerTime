@@ -28,6 +28,7 @@ public sealed class AppSettings
     public int AdhanLeadMinutes { get; set; } = 0;
     public bool ShowIqamahCountdownAfterAdhan { get; set; } = true;
     public string WidgetPlacement { get; set; } = WidgetPlacementOptions.AboveTaskbar;
+    public string WidgetTheme { get; set; } = WidgetThemeOptions.GoldDarkBlue;
     public Dictionary<string, int> IqamahOffsetsMinutes { get; set; } = CreateDefaultIqamahOffsets();
     public Dictionary<string, int> PrayerAdjustmentsMinutes { get; set; } = CreateDefaultPrayerAdjustments();
 
@@ -129,6 +130,11 @@ public sealed class AppSettings
             WidgetPlacement = WidgetPlacementOptions.AboveTaskbar;
         }
 
+        if (!WidgetThemeOptions.All.Contains(WidgetTheme, StringComparer.OrdinalIgnoreCase))
+        {
+            WidgetTheme = WidgetThemeOptions.GoldDarkBlue;
+        }
+
         if (!LocationModeOptions.All.Contains(LocationMode, StringComparer.OrdinalIgnoreCase))
         {
             LocationMode = LocationModeOptions.Auto;
@@ -159,5 +165,21 @@ public static class WidgetPlacementOptions
     [
         AboveTaskbar,
         TaskbarBand
+    ];
+}
+
+public static class WidgetThemeOptions
+{
+    public const string Simple = "Simple";
+    public const string GoldDarkBlue = "GoldDarkBlue";
+    public const string Glassy = "Glassy";
+    public const string DarkPurple = "DarkPurple";
+
+    public static readonly string[] All =
+    [
+        Simple,
+        GoldDarkBlue,
+        Glassy,
+        DarkPurple
     ];
 }

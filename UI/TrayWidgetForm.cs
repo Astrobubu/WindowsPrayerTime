@@ -15,6 +15,9 @@ public sealed class TrayWidgetForm : Form
     private bool _isDragging;
     private Point _dragStart;
     private string _placement = WidgetPlacementOptions.AboveTaskbar;
+    private WidgetThemeDefinition _theme = WidgetThemeCatalog.Get(WidgetThemeOptions.Simple);
+    private Image? _themeImage;
+    private WidgetState? _currentState;
 
     public event EventHandler? OpenRequested;
 
@@ -46,6 +49,13 @@ public sealed class TrayWidgetForm : Form
         ForeColor = Color.White;
         Opacity = 0.96;
         Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
+        DoubleBuffered = true;
+        SetStyle(
+            ControlStyles.AllPaintingInWmPaint |
+            ControlStyles.OptimizedDoubleBuffer |
+            ControlStyles.ResizeRedraw |
+            ControlStyles.UserPaint,
+            true);
 
         _layout.Dock = DockStyle.Fill;
         _layout.ColumnCount = 2;
@@ -74,7 +84,7 @@ public sealed class TrayWidgetForm : Form
         _secondaryLabel.Padding = new Padding(0, 2, 0, 0);
 
         Controls.Add(_layout);
-        ApplyPlacement(WidgetPlacementOptions.AboveTaskbar);
+        RebuildLayout();
 
         foreach (Control control in new Control[] { this, _layout, _primaryLabel, _timeLabel, _countdownLabel, _secondaryLabel })
         {
@@ -91,58 +101,37 @@ public sealed class TrayWidgetForm : Form
             ? WidgetPlacementOptions.TaskbarBand
             : WidgetPlacementOptions.AboveTaskbar;
 
-        _layout.SuspendLayout();
-        _layout.Controls.Clear();
-        _layout.RowStyles.Clear();
-        MinimumSize = Size.Empty;
-        MaximumSize = Size.Empty;
+        RebuildLayout();
+    }
 
-        if (_placement == WidgetPlacementOptions.TaskbarBand)
+    public void ApplyTheme(string themeKey)
+    {
+        WidgetThemeDefinition nextTheme = WidgetThemeCatalog.Get(themeKey);
+        if (string.Equals(nextTheme.Key, _theme.Key, StringComparison.OrdinalIgnoreCase))
         {
-            Size = new Size(174, 40);
-            MinimumSize = Size;
-            MaximumSize = Size;
-            Padding = new Padding(8, 3, 8, 3);
-            _layout.RowCount = 2;
-            _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 15));
-            _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 19));
-            _primaryLabel.Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold, GraphicsUnit.Point);
-            _timeLabel.Font = new Font("Segoe UI", 8F, FontStyle.Regular, GraphicsUnit.Point);
-            _countdownLabel.Font = new Font("Segoe UI", 13F, FontStyle.Bold, GraphicsUnit.Point);
-
-            _layout.Controls.Add(_primaryLabel, 0, 0);
-            _layout.Controls.Add(_timeLabel, 1, 0);
-            _layout.Controls.Add(_countdownLabel, 0, 1);
-            _layout.SetColumnSpan(_countdownLabel, 2);
-        }
-        else
-        {
-            Size = new Size(232, 96);
-            MinimumSize = Size;
-            MaximumSize = Size;
-            Padding = new Padding(12, 8, 12, 8);
-            _layout.RowCount = 3;
-            _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
-            _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
-            _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
-            _primaryLabel.Font = new Font("Segoe UI Semibold", 10F, FontStyle.Bold, GraphicsUnit.Point);
-            _timeLabel.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
-            _countdownLabel.Font = new Font("Segoe UI", 21F, FontStyle.Bold, GraphicsUnit.Point);
-
-            _layout.Controls.Add(_primaryLabel, 0, 0);
-            _layout.Controls.Add(_timeLabel, 1, 0);
-            _layout.Controls.Add(_countdownLabel, 0, 1);
-            _layout.SetColumnSpan(_countdownLabel, 2);
-            _layout.Controls.Add(_secondaryLabel, 0, 2);
-            _layout.SetColumnSpan(_secondaryLabel, 2);
+            return;
         }
 
-        _layout.ResumeLayout();
-        PlaceNearTaskbar();
+        _theme = nextTheme;
+        _themeImage?.Dispose();
+        _themeImage = null;
+
+        if (!_theme.IsSimple)
+        {
+            string imagePath = Path.Combine(AppContext.BaseDirectory, _theme.AssetPath);
+            if (File.Exists(imagePath))
+            {
+                _themeImage = Image.FromFile(imagePath);
+            }
+        }
+
+        RebuildLayout();
     }
 
     public void UpdateState(WidgetState state)
     {
+        _currentState = state;
+
         _primaryLabel.Text = _placement == WidgetPlacementOptions.TaskbarBand
             ? CompactPrimaryLabel(state.PrimaryLabel)
             : state.PrimaryLabel;
@@ -152,7 +141,11 @@ public sealed class TrayWidgetForm : Form
             : state.TimeLabel;
         _secondaryLabel.Text = state.SecondaryLabel;
 
-        BackColor = state.IsIqamahCountdown ? Color.FromArgb(103, 42, 35) : Color.FromArgb(21, 35, 38);
+        if (!IsThemedAboveTaskbar)
+        {
+            BackColor = state.IsIqamahCountdown ? Color.FromArgb(103, 42, 35) : Color.FromArgb(21, 35, 38);
+        }
+
         Invalidate();
     }
 
@@ -198,11 +191,165 @@ public sealed class TrayWidgetForm : Form
 
     protected override void OnPaint(PaintEventArgs e)
     {
+        if (IsThemedAboveTaskbar)
+        {
+            DrawThemedWidget(e.Graphics);
+            return;
+        }
+
         base.OnPaint(e);
         e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
         using var borderPen = new Pen(Color.FromArgb(76, 102, 104), 1);
         using GraphicsPath path = RoundedRect(new Rectangle(0, 0, Width - 1, Height - 1), 8);
         e.Graphics.DrawPath(borderPen, path);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _themeImage?.Dispose();
+        }
+
+        base.Dispose(disposing);
+    }
+
+    private bool IsThemedAboveTaskbar => _placement == WidgetPlacementOptions.AboveTaskbar && !_theme.IsSimple;
+
+    private void RebuildLayout()
+    {
+        _layout.SuspendLayout();
+        _layout.Controls.Clear();
+        _layout.RowStyles.Clear();
+        MinimumSize = Size.Empty;
+        MaximumSize = Size.Empty;
+
+        if (IsThemedAboveTaskbar)
+        {
+            Size = _theme.Size;
+            MinimumSize = Size;
+            MaximumSize = Size;
+            Padding = Padding.Empty;
+            Opacity = 1;
+            BackColor = Color.Black;
+            TransparencyKey = BackColor;
+            _layout.Visible = false;
+            _layout.ResumeLayout();
+            PlaceNearTaskbar();
+            Invalidate();
+            return;
+        }
+
+        TransparencyKey = Color.Empty;
+        Opacity = 0.96;
+        _layout.Visible = true;
+
+        if (_placement == WidgetPlacementOptions.TaskbarBand)
+        {
+            Size = new Size(174, 40);
+            MinimumSize = Size;
+            MaximumSize = Size;
+            Padding = new Padding(8, 3, 8, 3);
+            _layout.RowCount = 2;
+            _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 15));
+            _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 19));
+            _primaryLabel.Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold, GraphicsUnit.Point);
+            _timeLabel.Font = new Font("Segoe UI", 8F, FontStyle.Regular, GraphicsUnit.Point);
+            _countdownLabel.Font = new Font("Segoe UI", 13F, FontStyle.Bold, GraphicsUnit.Point);
+
+            _layout.Controls.Add(_primaryLabel, 0, 0);
+            _layout.Controls.Add(_timeLabel, 1, 0);
+            _layout.Controls.Add(_countdownLabel, 0, 1);
+            _layout.SetColumnSpan(_countdownLabel, 2);
+        }
+        else
+        {
+            Size = new Size(232, 96);
+            MinimumSize = Size;
+            MaximumSize = Size;
+            Padding = new Padding(12, 8, 12, 8);
+            _layout.RowCount = 3;
+            _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
+            _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
+            _layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
+            _primaryLabel.Font = new Font("Segoe UI Semibold", 10F, FontStyle.Bold, GraphicsUnit.Point);
+            _timeLabel.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
+            _countdownLabel.Font = new Font("Segoe UI", 21F, FontStyle.Bold, GraphicsUnit.Point);
+
+            _layout.Controls.Add(_primaryLabel, 0, 0);
+            _layout.Controls.Add(_timeLabel, 1, 0);
+            _layout.Controls.Add(_countdownLabel, 0, 1);
+            _layout.SetColumnSpan(_countdownLabel, 2);
+            _layout.Controls.Add(_secondaryLabel, 0, 2);
+            _layout.SetColumnSpan(_secondaryLabel, 2);
+        }
+
+        _layout.ResumeLayout();
+        PlaceNearTaskbar();
+        Invalidate();
+    }
+
+    private void DrawThemedWidget(Graphics graphics)
+    {
+        graphics.Clear(TransparencyKey);
+        graphics.SmoothingMode = SmoothingMode.AntiAlias;
+        graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+        graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+
+        if (_themeImage is not null)
+        {
+            graphics.DrawImage(_themeImage, ClientRectangle);
+        }
+        else
+        {
+            using var fallbackBrush = new SolidBrush(Color.FromArgb(20, 35, 42));
+            using GraphicsPath path = RoundedRect(new Rectangle(0, 0, Width - 1, Height - 1), 18);
+            graphics.FillPath(fallbackBrush, path);
+        }
+
+        WidgetState state = _currentState ?? new WidgetState("Loading", "--:--", "", "", false, null);
+        Color accent = state.IsIqamahCountdown ? _theme.WarningColor : _theme.AccentColor;
+        Color countdown = state.IsIqamahCountdown ? _theme.WarningColor : _theme.CountdownColor;
+
+        DrawText(graphics, state.PrimaryLabel, _theme.PrimaryRect, _theme.TitleFont, _theme.PrimaryFontSize, FontStyle.Bold, accent, _theme.PrimaryAlignment);
+        DrawText(graphics, state.TimeLabel, _theme.TimeRect, _theme.BodyFont, _theme.TimeFontSize, FontStyle.Regular, _theme.MutedColor, _theme.TimeAlignment);
+        DrawText(graphics, state.Countdown, _theme.CountdownRect, _theme.DisplayFont, _theme.CountdownFontSize, FontStyle.Bold, countdown, _theme.CountdownAlignment);
+        DrawText(graphics, state.SecondaryLabel, _theme.LocationRect, _theme.BodyFont, _theme.LocationFontSize, FontStyle.Regular, _theme.LocationColor, _theme.LocationAlignment);
+
+        string detail = state.IsIqamahCountdown ? "Step away for salah" : "Next prayer countdown";
+        DrawText(graphics, detail, _theme.DetailRect, _theme.BodyFont, _theme.DetailFontSize, FontStyle.Regular, _theme.MutedColor, _theme.DetailAlignment);
+    }
+
+    private void DrawText(
+        Graphics graphics,
+        string text,
+        Rectangle bounds,
+        string fontFamily,
+        float fontSize,
+        FontStyle style,
+        Color color,
+        StringAlignment alignment)
+    {
+        if (string.IsNullOrWhiteSpace(text) || bounds.Width <= 0 || bounds.Height <= 0)
+        {
+            return;
+        }
+
+        using var font = new Font(fontFamily, fontSize, style, GraphicsUnit.Point);
+        using var brush = new SolidBrush(color);
+        using var shadowBrush = new SolidBrush(Color.FromArgb(_theme.ShadowAlpha, Color.Black));
+        using var format = new StringFormat
+        {
+            Alignment = alignment,
+            LineAlignment = StringAlignment.Near,
+            Trimming = StringTrimming.EllipsisCharacter,
+            FormatFlags = StringFormatFlags.NoWrap
+        };
+
+        Rectangle shadowBounds = bounds;
+        shadowBounds.Offset(1, 2);
+        graphics.DrawString(text, font, shadowBrush, shadowBounds, format);
+        graphics.DrawString(text, font, brush, bounds, format);
     }
 
     private void BeginDrag(object? sender, MouseEventArgs e)
@@ -387,5 +534,147 @@ public sealed class TrayWidgetForm : Form
         public int Top;
         public int Right;
         public int Bottom;
+    }
+}
+
+public sealed record WidgetThemeDefinition(
+    string Key,
+    string DisplayName,
+    string AssetPath,
+    Size Size,
+    Rectangle PrimaryRect,
+    Rectangle TimeRect,
+    Rectangle CountdownRect,
+    Rectangle LocationRect,
+    Rectangle DetailRect,
+    string TitleFont,
+    string DisplayFont,
+    string BodyFont,
+    float PrimaryFontSize,
+    float TimeFontSize,
+    float CountdownFontSize,
+    float LocationFontSize,
+    float DetailFontSize,
+    Color AccentColor,
+    Color CountdownColor,
+    Color LocationColor,
+    Color MutedColor,
+    Color WarningColor,
+    int ShadowAlpha,
+    StringAlignment PrimaryAlignment = StringAlignment.Near,
+    StringAlignment TimeAlignment = StringAlignment.Far,
+    StringAlignment CountdownAlignment = StringAlignment.Near,
+    StringAlignment LocationAlignment = StringAlignment.Near,
+    StringAlignment DetailAlignment = StringAlignment.Near)
+{
+    public bool IsSimple => string.Equals(Key, WidgetThemeOptions.Simple, StringComparison.OrdinalIgnoreCase);
+}
+
+public static class WidgetThemeCatalog
+{
+    public static IReadOnlyList<WidgetThemeDefinition> All { get; } =
+    [
+        new(
+            WidgetThemeOptions.Simple,
+            "Simple compact",
+            "",
+            new Size(232, 96),
+            Rectangle.Empty,
+            Rectangle.Empty,
+            Rectangle.Empty,
+            Rectangle.Empty,
+            Rectangle.Empty,
+            "Segoe UI Semibold",
+            "Segoe UI",
+            "Segoe UI",
+            10,
+            9,
+            21,
+            8,
+            8,
+            Color.White,
+            Color.White,
+            Color.White,
+            Color.White,
+            Color.FromArgb(255, 190, 120),
+            120),
+        new(
+            WidgetThemeOptions.GoldDarkBlue,
+            "Gold dark blue",
+            Path.Combine("Assets", "Themes", "gold-dark-blue.png"),
+            new Size(420, 236),
+            new Rectangle(48, 50, 190, 26),
+            new Rectangle(268, 50, 104, 24),
+            new Rectangle(48, 76, 220, 56),
+            new Rectangle(48, 137, 250, 22),
+            new Rectangle(48, 160, 220, 18),
+            "Palatino Linotype",
+            "Constantia",
+            "Segoe UI",
+            11,
+            8.5f,
+            31,
+            8.5f,
+            7.5f,
+            Color.FromArgb(237, 188, 92),
+            Color.FromArgb(255, 237, 198),
+            Color.FromArgb(236, 205, 143),
+            Color.FromArgb(196, 160, 92),
+            Color.FromArgb(255, 175, 96),
+            150),
+        new(
+            WidgetThemeOptions.Glassy,
+            "Glassy cyan",
+            Path.Combine("Assets", "Themes", "glassy.png"),
+            new Size(420, 236),
+            new Rectangle(42, 48, 180, 24),
+            new Rectangle(290, 48, 92, 24),
+            new Rectangle(42, 78, 210, 54),
+            new Rectangle(42, 136, 252, 22),
+            new Rectangle(42, 158, 224, 18),
+            "Segoe UI Variable Display",
+            "Segoe UI Variable Display",
+            "Segoe UI",
+            10.5f,
+            8.5f,
+            30,
+            8.5f,
+            7.5f,
+            Color.FromArgb(113, 248, 255),
+            Color.FromArgb(235, 255, 255),
+            Color.FromArgb(174, 234, 240),
+            Color.FromArgb(143, 197, 207),
+            Color.FromArgb(255, 210, 118),
+            135),
+        new(
+            WidgetThemeOptions.DarkPurple,
+            "Dark purple",
+            Path.Combine("Assets", "Themes", "dark-purple.png"),
+            new Size(420, 236),
+            new Rectangle(44, 56, 190, 26),
+            new Rectangle(44, 84, 112, 22),
+            new Rectangle(44, 104, 210, 56),
+            new Rectangle(44, 166, 246, 22),
+            new Rectangle(44, 188, 210, 18),
+            "Bahnschrift",
+            "Segoe UI Variable Display",
+            "Segoe UI",
+            10.5f,
+            8.5f,
+            30,
+            8.5f,
+            7.5f,
+            Color.FromArgb(194, 132, 255),
+            Color.FromArgb(246, 241, 255),
+            Color.FromArgb(205, 185, 255),
+            Color.FromArgb(148, 139, 220),
+            Color.FromArgb(255, 134, 211),
+            150)
+    ];
+
+    public static WidgetThemeDefinition Get(string? key)
+    {
+        return All.FirstOrDefault(theme => string.Equals(theme.Key, key, StringComparison.OrdinalIgnoreCase))
+            ?? All.First(theme => theme.Key == WidgetThemeOptions.GoldDarkBlue);
     }
 }

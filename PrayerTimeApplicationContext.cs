@@ -18,6 +18,7 @@ public sealed class PrayerTimeApplicationContext : ApplicationContext
     private readonly ToolStripMenuItem _showWidgetMenuItem;
     private readonly ToolStripMenuItem _aboveTaskbarMenuItem;
     private readonly ToolStripMenuItem _taskbarBandMenuItem;
+    private readonly Dictionary<string, ToolStripMenuItem> _themeMenuItems = new(StringComparer.OrdinalIgnoreCase);
     private readonly ToolStripMenuItem _refreshMenuItem;
     private readonly AladhanPrayerTimesService _prayerTimesService;
     private AppSettings _settings;
@@ -56,6 +57,18 @@ public sealed class PrayerTimeApplicationContext : ApplicationContext
         _taskbarBandMenuItem.Click += (_, _) => SetWidgetPlacement(WidgetPlacementOptions.TaskbarBand);
         UpdatePlacementMenu();
 
+        foreach (WidgetThemeDefinition theme in WidgetThemeCatalog.All)
+        {
+            var themeItem = new ToolStripMenuItem(theme.DisplayName)
+            {
+                CheckOnClick = true
+            };
+            string themeKey = theme.Key;
+            themeItem.Click += (_, _) => SetWidgetTheme(themeKey);
+            _themeMenuItems[theme.Key] = themeItem;
+        }
+        UpdateThemeMenu();
+
         _refreshMenuItem = new ToolStripMenuItem("Refresh prayer times");
         _refreshMenuItem.Click += async (_, _) => await RefreshScheduleAsync(showErrors: true);
 
@@ -84,6 +97,12 @@ public sealed class PrayerTimeApplicationContext : ApplicationContext
         placementMenu.DropDownItems.Add(_aboveTaskbarMenuItem);
         placementMenu.DropDownItems.Add(_taskbarBandMenuItem);
         _contextMenu.Items.Add(placementMenu);
+        var themeMenu = new ToolStripMenuItem("Widget theme");
+        foreach (ToolStripMenuItem themeItem in _themeMenuItems.Values)
+        {
+            themeMenu.DropDownItems.Add(themeItem);
+        }
+        _contextMenu.Items.Add(themeMenu);
         _contextMenu.Items.Add(_refreshMenuItem);
         _contextMenu.Items.Add("Settings", null, (_, _) => OpenSettings());
         _contextMenu.Items.Add("Open settings folder", null, (_, _) => OpenSettingsFolder());
@@ -325,6 +344,7 @@ public sealed class PrayerTimeApplicationContext : ApplicationContext
         StartupService.SetEnabled(_settings.StartWithWindows);
         _showWidgetMenuItem.Checked = _settings.ShowDesktopWidget;
         UpdatePlacementMenu();
+        UpdateThemeMenu();
         ToggleWidget(_settings.ShowDesktopWidget, save: false);
         _ = RefreshScheduleAsync(showErrors: true, force: true);
     }
@@ -341,11 +361,31 @@ public sealed class PrayerTimeApplicationContext : ApplicationContext
         ShowWidget();
     }
 
+    private void SetWidgetTheme(string theme)
+    {
+        _settings.WidgetTheme = WidgetThemeOptions.All.Contains(theme, StringComparer.OrdinalIgnoreCase)
+            ? theme
+            : WidgetThemeOptions.GoldDarkBlue;
+        _settings.ShowDesktopWidget = true;
+        _settingsStore.Save(_settings);
+        _showWidgetMenuItem.Checked = true;
+        UpdateThemeMenu();
+        ShowWidget();
+    }
+
     private void UpdatePlacementMenu()
     {
         bool taskbarBand = string.Equals(_settings.WidgetPlacement, WidgetPlacementOptions.TaskbarBand, StringComparison.OrdinalIgnoreCase);
         _aboveTaskbarMenuItem.Checked = !taskbarBand;
         _taskbarBandMenuItem.Checked = taskbarBand;
+    }
+
+    private void UpdateThemeMenu()
+    {
+        foreach ((string themeKey, ToolStripMenuItem item) in _themeMenuItems)
+        {
+            item.Checked = string.Equals(_settings.WidgetTheme, themeKey, StringComparison.OrdinalIgnoreCase);
+        }
     }
 
     private void ToggleWidget(bool show, bool save = true)
@@ -374,6 +414,7 @@ public sealed class PrayerTimeApplicationContext : ApplicationContext
             _widget.OpenRequested += (_, _) => OpenDashboard();
         }
 
+        _widget.ApplyTheme(_settings.WidgetTheme);
         _widget.ApplyPlacement(_settings.WidgetPlacement);
         _widget.UpdateState(WidgetStateFactory.FromSchedule(_schedule, _settings, DateTime.Now));
         _widget.Show();
