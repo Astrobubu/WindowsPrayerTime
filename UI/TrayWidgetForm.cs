@@ -16,6 +16,7 @@ public sealed class TrayWidgetForm : Form
     private Point _dragStart;
     private string _placement = WidgetPlacementOptions.AboveTaskbar;
     private WidgetThemeDefinition _theme = WidgetThemeCatalog.Get(WidgetThemeOptions.Simple);
+    private WidgetThemeCustomization? _customization;
     private Image? _themeImage;
     private WidgetState? _currentState;
 
@@ -104,15 +105,32 @@ public sealed class TrayWidgetForm : Form
         RebuildLayout();
     }
 
-    public void ApplyTheme(string themeKey)
+    public void ApplyTheme(string themeKey, WidgetThemeCustomization? customization = null)
     {
         WidgetThemeDefinition nextTheme = WidgetThemeCatalog.Get(themeKey);
-        if (string.Equals(nextTheme.Key, _theme.Key, StringComparison.OrdinalIgnoreCase))
+        bool sameTheme = string.Equals(nextTheme.Key, _theme.Key, StringComparison.OrdinalIgnoreCase);
+        _customization = customization;
+
+        if (sameTheme)
         {
+            Invalidate();
             return;
         }
 
         _theme = nextTheme;
+        LoadThemeImage();
+
+        RebuildLayout();
+    }
+
+    public void ApplyCustomization(WidgetThemeCustomization? customization)
+    {
+        _customization = customization;
+        Invalidate();
+    }
+
+    private void LoadThemeImage()
+    {
         _themeImage?.Dispose();
         _themeImage = null;
 
@@ -124,8 +142,6 @@ public sealed class TrayWidgetForm : Form
                 _themeImage = Image.FromFile(imagePath);
             }
         }
-
-        RebuildLayout();
     }
 
     public void UpdateState(WidgetState state)
@@ -311,13 +327,86 @@ public sealed class TrayWidgetForm : Form
         Color accent = state.IsIqamahCountdown ? _theme.WarningColor : _theme.AccentColor;
         Color countdown = state.IsIqamahCountdown ? _theme.WarningColor : _theme.CountdownColor;
 
-        DrawText(graphics, state.PrimaryLabel, _theme.PrimaryRect, _theme.TitleFont, _theme.PrimaryFontSize, FontStyle.Bold, accent, _theme.PrimaryAlignment);
-        DrawText(graphics, state.TimeLabel, _theme.TimeRect, _theme.BodyFont, _theme.TimeFontSize, FontStyle.Regular, _theme.MutedColor, _theme.TimeAlignment);
-        DrawText(graphics, state.Countdown, _theme.CountdownRect, _theme.DisplayFont, _theme.CountdownFontSize, FontStyle.Bold, countdown, _theme.CountdownAlignment);
-        DrawText(graphics, state.SecondaryLabel, _theme.LocationRect, _theme.BodyFont, _theme.LocationFontSize, FontStyle.Regular, _theme.LocationColor, _theme.LocationAlignment);
+        DrawThemeText(
+            graphics,
+            WidgetTextElementKeys.Primary,
+            state.PrimaryLabel,
+            _theme.PrimaryRect,
+            _theme.TitleFont,
+            _theme.PrimaryFontSize,
+            FontStyle.Bold,
+            accent,
+            _theme.PrimaryAlignment);
+        DrawThemeText(
+            graphics,
+            WidgetTextElementKeys.Time,
+            state.TimeLabel,
+            _theme.TimeRect,
+            _theme.BodyFont,
+            _theme.TimeFontSize,
+            FontStyle.Regular,
+            _theme.MutedColor,
+            _theme.TimeAlignment);
+        DrawThemeText(
+            graphics,
+            WidgetTextElementKeys.Countdown,
+            state.Countdown,
+            _theme.CountdownRect,
+            _theme.DisplayFont,
+            _theme.CountdownFontSize,
+            FontStyle.Bold,
+            countdown,
+            _theme.CountdownAlignment);
+        DrawThemeText(
+            graphics,
+            WidgetTextElementKeys.Location,
+            state.SecondaryLabel,
+            _theme.LocationRect,
+            _theme.BodyFont,
+            _theme.LocationFontSize,
+            FontStyle.Regular,
+            _theme.LocationColor,
+            _theme.LocationAlignment);
 
         string detail = state.IsIqamahCountdown ? "Step away for salah" : "Next prayer countdown";
-        DrawText(graphics, detail, _theme.DetailRect, _theme.BodyFont, _theme.DetailFontSize, FontStyle.Regular, _theme.MutedColor, _theme.DetailAlignment);
+        DrawThemeText(
+            graphics,
+            WidgetTextElementKeys.Detail,
+            detail,
+            _theme.DetailRect,
+            _theme.BodyFont,
+            _theme.DetailFontSize,
+            FontStyle.Regular,
+            _theme.MutedColor,
+            _theme.DetailAlignment);
+    }
+
+    private void DrawThemeText(
+        Graphics graphics,
+        string elementKey,
+        string text,
+        Rectangle defaultBounds,
+        string defaultFontFamily,
+        float defaultFontSize,
+        FontStyle style,
+        Color defaultColor,
+        StringAlignment defaultAlignment)
+    {
+        WidgetTextCustomization? element = GetElement(elementKey);
+        if (element?.Visible == false)
+        {
+            return;
+        }
+
+        DrawText(
+            graphics,
+            text,
+            GetBounds(element, defaultBounds),
+            element?.FontFamily ?? defaultFontFamily,
+            element?.FontSize ?? defaultFontSize,
+            style,
+            ParseColor(element?.Color, defaultColor),
+            ParseAlignment(element?.Alignment, defaultAlignment));
     }
 
     private void DrawText(
@@ -337,7 +426,8 @@ public sealed class TrayWidgetForm : Form
 
         using var font = new Font(fontFamily, fontSize, style, GraphicsUnit.Point);
         using var brush = new SolidBrush(color);
-        using var shadowBrush = new SolidBrush(Color.FromArgb(_theme.ShadowAlpha, Color.Black));
+        int shadowAlpha = Math.Clamp(_customization?.ShadowAlpha ?? _theme.ShadowAlpha, 0, 255);
+        using var shadowBrush = new SolidBrush(Color.FromArgb(shadowAlpha, Color.Black));
         using var format = new StringFormat
         {
             Alignment = alignment,
@@ -347,9 +437,53 @@ public sealed class TrayWidgetForm : Form
         };
 
         Rectangle shadowBounds = bounds;
-        shadowBounds.Offset(1, 2);
+        shadowBounds.Offset(_customization?.ShadowOffsetX ?? 1, _customization?.ShadowOffsetY ?? 1);
         graphics.DrawString(text, font, shadowBrush, shadowBounds, format);
         graphics.DrawString(text, font, brush, bounds, format);
+    }
+
+    private WidgetTextCustomization? GetElement(string elementKey)
+    {
+        return _customization?.Elements.TryGetValue(elementKey, out WidgetTextCustomization? element) == true
+            ? element
+            : null;
+    }
+
+    private static Rectangle GetBounds(WidgetTextCustomization? element, Rectangle defaultBounds)
+    {
+        return new Rectangle(
+            element?.X ?? defaultBounds.X,
+            element?.Y ?? defaultBounds.Y,
+            element?.Width ?? defaultBounds.Width,
+            element?.Height ?? defaultBounds.Height);
+    }
+
+    private static Color ParseColor(string? value, Color fallback)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return fallback;
+        }
+
+        try
+        {
+            return ColorTranslator.FromHtml(value);
+        }
+        catch
+        {
+            return fallback;
+        }
+    }
+
+    private static StringAlignment ParseAlignment(string? value, StringAlignment fallback)
+    {
+        return value?.ToLowerInvariant() switch
+        {
+            "center" => StringAlignment.Center,
+            "far" or "right" => StringAlignment.Far,
+            "near" or "left" => StringAlignment.Near,
+            _ => fallback
+        };
     }
 
     private void BeginDrag(object? sender, MouseEventArgs e)
@@ -613,7 +747,7 @@ public static class WidgetThemeCatalog
             "Segoe UI",
             11,
             8.5f,
-            31,
+            27,
             8.5f,
             7.5f,
             Color.FromArgb(237, 188, 92),
@@ -621,7 +755,7 @@ public static class WidgetThemeCatalog
             Color.FromArgb(236, 205, 143),
             Color.FromArgb(196, 160, 92),
             Color.FromArgb(255, 175, 96),
-            150),
+            82),
         new(
             WidgetThemeOptions.Glassy,
             "Glassy cyan",
@@ -637,7 +771,7 @@ public static class WidgetThemeCatalog
             "Segoe UI",
             10.5f,
             8.5f,
-            30,
+            26,
             8.5f,
             7.5f,
             Color.FromArgb(113, 248, 255),
@@ -645,7 +779,7 @@ public static class WidgetThemeCatalog
             Color.FromArgb(174, 234, 240),
             Color.FromArgb(143, 197, 207),
             Color.FromArgb(255, 210, 118),
-            135),
+            76),
         new(
             WidgetThemeOptions.DarkPurple,
             "Dark purple",
@@ -661,7 +795,7 @@ public static class WidgetThemeCatalog
             "Segoe UI",
             10.5f,
             8.5f,
-            30,
+            26,
             8.5f,
             7.5f,
             Color.FromArgb(194, 132, 255),
@@ -669,7 +803,7 @@ public static class WidgetThemeCatalog
             Color.FromArgb(205, 185, 255),
             Color.FromArgb(148, 139, 220),
             Color.FromArgb(255, 134, 211),
-            150)
+            82)
     ];
 
     public static WidgetThemeDefinition Get(string? key)
@@ -677,4 +811,22 @@ public static class WidgetThemeCatalog
         return All.FirstOrDefault(theme => string.Equals(theme.Key, key, StringComparison.OrdinalIgnoreCase))
             ?? All.First(theme => theme.Key == WidgetThemeOptions.GoldDarkBlue);
     }
+}
+
+public static class WidgetTextElementKeys
+{
+    public const string Primary = "Primary";
+    public const string Time = "Time";
+    public const string Countdown = "Countdown";
+    public const string Location = "Location";
+    public const string Detail = "Detail";
+
+    public static readonly string[] All =
+    [
+        Primary,
+        Time,
+        Countdown,
+        Location,
+        Detail
+    ];
 }

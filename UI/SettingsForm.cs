@@ -171,6 +171,16 @@ public sealed class SettingsForm : Form
             .ToList();
         AddRow(layout, "Widget theme", _themeBox);
 
+        var editThemeButton = new Button
+        {
+            Text = "Open theme editor",
+            Height = 30,
+            Dock = DockStyle.Left,
+            Width = 150
+        };
+        editThemeButton.Click += (_, _) => OpenThemeEditor();
+        AddFullRow(layout, editThemeButton);
+
         AddFullRow(layout, _startWithWindowsBox);
         AddFullRow(layout, _adhanAlertsBox);
         AddFullRow(layout, _iqamahAlertsBox);
@@ -190,6 +200,19 @@ public sealed class SettingsForm : Form
 
         page.Controls.Add(layout);
         return page;
+    }
+
+    private void OpenThemeEditor()
+    {
+        SaveControlsToSettings();
+        using var form = new ThemeEditorForm(Settings);
+        if (form.ShowDialog(this) != DialogResult.OK)
+        {
+            return;
+        }
+
+        Settings = form.Settings;
+        LoadSettings();
     }
 
     private void LoadSettings()
@@ -239,6 +262,14 @@ public sealed class SettingsForm : Form
             return;
         }
 
+        SaveControlsToSettings();
+
+        DialogResult = DialogResult.OK;
+        Close();
+    }
+
+    private void SaveControlsToSettings()
+    {
         Settings.City = _cityBox.Text.Trim();
         Settings.Country = _countryBox.Text.Trim();
         Settings.State = _stateBox.Text.Trim();
@@ -276,9 +307,6 @@ public sealed class SettingsForm : Form
             Settings.IqamahOffsetsMinutes[prayer] = (int)_iqamahOffsetBoxes[prayer].Value;
             Settings.PrayerAdjustmentsMinutes[prayer] = (int)_adjustmentBoxes[prayer].Value;
         }
-
-        DialogResult = DialogResult.OK;
-        Close();
     }
 
     private static TableLayoutPanel CreateTwoColumnLayout()
@@ -322,7 +350,7 @@ public sealed class SettingsForm : Form
         layout.Controls.Add(suffixLabel, 2, row);
     }
 
-    private static void AddFullRow(TableLayoutPanel layout, CheckBox box)
+    private static void AddFullRow(TableLayoutPanel layout, Control box)
     {
         int row = layout.RowCount++;
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
@@ -421,6 +449,10 @@ public sealed class SettingsForm : Form
             ShowIqamahCountdownAfterAdhan = settings.ShowIqamahCountdownAfterAdhan,
             WidgetPlacement = settings.WidgetPlacement,
             WidgetTheme = settings.WidgetTheme,
+            WidgetThemeCustomizations = settings.WidgetThemeCustomizations.ToDictionary(
+                pair => pair.Key,
+                pair => pair.Value.Clone(),
+                StringComparer.OrdinalIgnoreCase),
             IqamahOffsetsMinutes = new Dictionary<string, int>(settings.IqamahOffsetsMinutes, StringComparer.OrdinalIgnoreCase),
             PrayerAdjustmentsMinutes = new Dictionary<string, int>(settings.PrayerAdjustmentsMinutes, StringComparer.OrdinalIgnoreCase)
         };

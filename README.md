@@ -8,6 +8,7 @@ A quiet Windows tray app for prayer times, Adhan reminders, and Iqamah nudges wh
 
 - Compact countdown widget near the bottom-right taskbar area.
 - Selectable visual themes using bundled transparent PNG backgrounds.
+- Manual theme editor for moving text boxes, changing fonts, adjusting sizes, colors, alignment, and shadow softness.
 - Tray icon with the next prayer and countdown.
 - Auto-location mode: detects approximate network location, then asks AlAdhan for prayer times by latitude and longitude.
 - Manual location modes: city/country or exact coordinates.
@@ -67,6 +68,11 @@ Available settings:
   - Gold dark blue
   - Glassy cyan
   - Dark purple
+- Manual theme editor:
+  - Position and resize each text element
+  - Pick fonts and font sizes
+  - Adjust colors and alignment
+  - Soften or strengthen the text shadow
 - Sound, Adhan, and Iqamah alert toggles.
 - PC activity threshold for assertive Iqamah reminders.
 - Start with Windows.

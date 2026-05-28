@@ -103,6 +103,7 @@ public sealed class PrayerTimeApplicationContext : ApplicationContext
             themeMenu.DropDownItems.Add(themeItem);
         }
         _contextMenu.Items.Add(themeMenu);
+        _contextMenu.Items.Add("Edit widget theme", null, (_, _) => OpenThemeEditor());
         _contextMenu.Items.Add(_refreshMenuItem);
         _contextMenu.Items.Add("Settings", null, (_, _) => OpenSettings());
         _contextMenu.Items.Add("Open settings folder", null, (_, _) => OpenSettingsFolder());
@@ -349,6 +350,22 @@ public sealed class PrayerTimeApplicationContext : ApplicationContext
         _ = RefreshScheduleAsync(showErrors: true, force: true);
     }
 
+    private void OpenThemeEditor()
+    {
+        using var form = new ThemeEditorForm(_settings);
+        if (form.ShowDialog(_dashboard) != DialogResult.OK)
+        {
+            return;
+        }
+
+        _settings = form.Settings;
+        _settings.ShowDesktopWidget = true;
+        _settingsStore.Save(_settings);
+        _showWidgetMenuItem.Checked = true;
+        UpdateThemeMenu();
+        ShowWidget();
+    }
+
     private void SetWidgetPlacement(string placement)
     {
         _settings.WidgetPlacement = string.Equals(placement, WidgetPlacementOptions.TaskbarBand, StringComparison.OrdinalIgnoreCase)
@@ -414,7 +431,11 @@ public sealed class PrayerTimeApplicationContext : ApplicationContext
             _widget.OpenRequested += (_, _) => OpenDashboard();
         }
 
-        _widget.ApplyTheme(_settings.WidgetTheme);
+        _widget.ApplyTheme(
+            _settings.WidgetTheme,
+            _settings.WidgetThemeCustomizations.TryGetValue(_settings.WidgetTheme, out WidgetThemeCustomization? customization)
+                ? customization
+                : null);
         _widget.ApplyPlacement(_settings.WidgetPlacement);
         _widget.UpdateState(WidgetStateFactory.FromSchedule(_schedule, _settings, DateTime.Now));
         _widget.Show();

@@ -29,6 +29,7 @@ public sealed class AppSettings
     public bool ShowIqamahCountdownAfterAdhan { get; set; } = true;
     public string WidgetPlacement { get; set; } = WidgetPlacementOptions.AboveTaskbar;
     public string WidgetTheme { get; set; } = WidgetThemeOptions.GoldDarkBlue;
+    public Dictionary<string, WidgetThemeCustomization> WidgetThemeCustomizations { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public Dictionary<string, int> IqamahOffsetsMinutes { get; set; } = CreateDefaultIqamahOffsets();
     public Dictionary<string, int> PrayerAdjustmentsMinutes { get; set; } = CreateDefaultPrayerAdjustments();
 
@@ -98,6 +99,7 @@ public sealed class AppSettings
     {
         IqamahOffsetsMinutes ??= CreateDefaultIqamahOffsets();
         PrayerAdjustmentsMinutes ??= CreateDefaultPrayerAdjustments();
+        WidgetThemeCustomizations ??= new Dictionary<string, WidgetThemeCustomization>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var pair in CreateDefaultIqamahOffsets())
         {
@@ -139,6 +141,65 @@ public sealed class AppSettings
         {
             LocationMode = LocationModeOptions.Auto;
         }
+
+        foreach (WidgetThemeCustomization customization in WidgetThemeCustomizations.Values)
+        {
+            customization.Elements ??= new Dictionary<string, WidgetTextCustomization>(StringComparer.OrdinalIgnoreCase);
+            customization.ShadowAlpha = customization.ShadowAlpha is null ? null : Math.Clamp(customization.ShadowAlpha.Value, 0, 255);
+            customization.ShadowOffsetX = customization.ShadowOffsetX is null ? null : Math.Clamp(customization.ShadowOffsetX.Value, -12, 12);
+            customization.ShadowOffsetY = customization.ShadowOffsetY is null ? null : Math.Clamp(customization.ShadowOffsetY.Value, -12, 12);
+        }
+    }
+}
+
+public sealed class WidgetThemeCustomization
+{
+    public int? ShadowAlpha { get; set; }
+    public int? ShadowOffsetX { get; set; }
+    public int? ShadowOffsetY { get; set; }
+    public Dictionary<string, WidgetTextCustomization> Elements { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    public WidgetThemeCustomization Clone()
+    {
+        return new WidgetThemeCustomization
+        {
+            ShadowAlpha = ShadowAlpha,
+            ShadowOffsetX = ShadowOffsetX,
+            ShadowOffsetY = ShadowOffsetY,
+            Elements = Elements.ToDictionary(
+                pair => pair.Key,
+                pair => pair.Value.Clone(),
+                StringComparer.OrdinalIgnoreCase)
+        };
+    }
+}
+
+public sealed class WidgetTextCustomization
+{
+    public int? X { get; set; }
+    public int? Y { get; set; }
+    public int? Width { get; set; }
+    public int? Height { get; set; }
+    public float? FontSize { get; set; }
+    public string? FontFamily { get; set; }
+    public string? Color { get; set; }
+    public string? Alignment { get; set; }
+    public bool? Visible { get; set; }
+
+    public WidgetTextCustomization Clone()
+    {
+        return new WidgetTextCustomization
+        {
+            X = X,
+            Y = Y,
+            Width = Width,
+            Height = Height,
+            FontSize = FontSize,
+            FontFamily = FontFamily,
+            Color = Color,
+            Alignment = Alignment,
+            Visible = Visible
+        };
     }
 }
 
