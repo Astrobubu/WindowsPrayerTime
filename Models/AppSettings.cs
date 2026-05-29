@@ -29,7 +29,7 @@ public sealed class AppSettings
     public bool ShowIqamahCountdownAfterAdhan { get; set; } = true;
     public string WidgetPlacement { get; set; } = WidgetPlacementOptions.AboveTaskbar;
     public string WidgetTheme { get; set; } = WidgetThemeOptions.GoldDarkBlue;
-    public Dictionary<string, WidgetThemeCustomization> WidgetThemeCustomizations { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    public Dictionary<string, WidgetThemeCustomization> WidgetThemeCustomizations { get; set; } = CreateDefaultWidgetThemeCustomizations();
     public Dictionary<string, int> IqamahOffsetsMinutes { get; set; } = CreateDefaultIqamahOffsets();
     public Dictionary<string, int> PrayerAdjustmentsMinutes { get; set; } = CreateDefaultPrayerAdjustments();
 
@@ -75,6 +75,172 @@ public sealed class AppSettings
         ["Isha"] = 0
     };
 
+    public static Dictionary<string, WidgetThemeCustomization> CreateDefaultWidgetThemeCustomizations() => new(StringComparer.OrdinalIgnoreCase)
+    {
+        [WidgetThemeOptions.GoldDarkBlue] = new WidgetThemeCustomization
+        {
+            Width = 260,
+            Height = 145,
+            ShadowAlpha = 82,
+            ShadowOffsetX = 1,
+            ShadowOffsetY = 1,
+            ShadowBlur = 0,
+            GlowAlpha = 135,
+            GlowBlur = 0,
+            GlowColor = "#EDBC5C",
+            Elements = new Dictionary<string, WidgetTextCustomization>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Primary"] = new()
+                {
+                    X = 76, Y = 28, Width = 262, Height = 26,
+                    FontSize = 17, FontFamily = "Raleway", Color = "#EDBC5C",
+                    Alignment = "Center", Bold = false, Visible = true,
+                    ShadowAlpha = 0, ShadowOffsetX = 1, ShadowOffsetY = 1, ShadowBlur = 2,
+                    GlowAlpha = 0, GlowBlur = 0, GlowColor = "#EDBC5C"
+                },
+                ["Time"] = new()
+                {
+                    X = 268, Y = 36, Width = 104, Height = 24,
+                    FontSize = 14.5F, FontFamily = "Raleway", Color = "#C4A05C",
+                    Alignment = "Far", Bold = false, Visible = false,
+                    ShadowAlpha = 0, ShadowOffsetX = 1, ShadowOffsetY = 1, ShadowBlur = 2,
+                    GlowAlpha = 0, GlowBlur = 0, GlowColor = "#C4A05C"
+                },
+                ["Countdown"] = new()
+                {
+                    X = 19, Y = 76, Width = 385, Height = 98,
+                    FontSize = 51, FontFamily = "Century Gothic", Color = "#ECB755",
+                    Alignment = "Center", Bold = false, Visible = true,
+                    ShadowAlpha = 0, ShadowOffsetX = 1, ShadowOffsetY = 1, ShadowBlur = 2,
+                    GlowAlpha = 48, GlowBlur = 3, GlowColor = "#FFEDC6"
+                },
+                ["Location"] = new()
+                {
+                    X = 36, Y = 201, Width = 343, Height = 22,
+                    FontSize = 13, FontFamily = "Raleway", Color = "#ECCD8F",
+                    Alignment = "Center", Bold = false, Visible = true,
+                    ShadowAlpha = 0, ShadowOffsetX = 1, ShadowOffsetY = 1, ShadowBlur = 2,
+                    GlowAlpha = 0, GlowBlur = 0, GlowColor = "#ECCD8F"
+                },
+                ["Detail"] = new()
+                {
+                    X = 48, Y = 160, Width = 220, Height = 21,
+                    FontSize = 7.5F, FontFamily = "Segoe UI", Color = "#C4A05C",
+                    Alignment = "Near", Visible = false
+                }
+            }
+        },
+        [WidgetThemeOptions.Glassy] = new WidgetThemeCustomization
+        {
+            Width = 260,
+            Height = 145,
+            ShadowAlpha = 76,
+            ShadowOffsetX = 1,
+            ShadowOffsetY = 1,
+            ShadowBlur = 2,
+            GlowAlpha = 0,
+            GlowBlur = 0,
+            GlowColor = "#71F8FF",
+            Elements = new Dictionary<string, WidgetTextCustomization>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Primary"] = new()
+                {
+                    X = 21, Y = 33, Width = 180, Height = 33,
+                    FontSize = 22.5F, FontFamily = "Bahnschrift SemiCondensed", Color = "#71F8FF",
+                    Alignment = "Near", Bold = false, Visible = true,
+                    ShadowAlpha = 138, ShadowOffsetX = 1, ShadowOffsetY = 1, ShadowBlur = 2,
+                    GlowAlpha = 0, GlowBlur = 0, GlowColor = "#71F8FF"
+                },
+                ["Time"] = new()
+                {
+                    X = 245, Y = 34, Width = 146, Height = 33,
+                    FontSize = 22.5F, FontFamily = "Bahnschrift SemiCondensed", Color = "#8FC5CF",
+                    Alignment = "Far", Bold = false, Visible = true,
+                    ShadowAlpha = 147, ShadowOffsetX = 1, ShadowOffsetY = 1, ShadowBlur = 2,
+                    GlowAlpha = 0, GlowBlur = 0, GlowColor = "#8FC5CF"
+                },
+                ["Countdown"] = new()
+                {
+                    X = 33, Y = 86, Width = 354, Height = 81,
+                    FontSize = 57.5F, FontFamily = "Bahnschrift SemiCondensed", Color = "#EBFFFF",
+                    Alignment = "Center", Bold = false, Visible = true,
+                    ShadowAlpha = 0, ShadowOffsetX = 1, ShadowOffsetY = 1, ShadowBlur = 0,
+                    GlowAlpha = 69, GlowBlur = 6, GlowColor = "#71F8FF"
+                },
+                ["Location"] = new()
+                {
+                    X = 38, Y = 188, Width = 348, Height = 22,
+                    FontSize = 16, FontFamily = "Bahnschrift SemiCondensed", Color = "#AEEAF0",
+                    Alignment = "Center", Bold = false, Visible = true,
+                    ShadowAlpha = 0, ShadowOffsetX = 1, ShadowOffsetY = 1, ShadowBlur = 2,
+                    GlowAlpha = 0, GlowBlur = 0, GlowColor = "#AEEAF0"
+                },
+                ["Detail"] = new()
+                {
+                    X = 42, Y = 158, Width = 224, Height = 18,
+                    FontSize = 7.5F, FontFamily = "Segoe UI", Color = "#8FC5CF",
+                    Alignment = "Near", Bold = false, Visible = false
+                }
+            }
+        },
+        [WidgetThemeOptions.DarkPurple] = new WidgetThemeCustomization
+        {
+            Width = 260,
+            Height = 145,
+            Elements = new Dictionary<string, WidgetTextCustomization>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Primary"] = new()
+                {
+                    X = 21, Y = 29, Width = 190, Height = 35,
+                    FontSize = 21, FontFamily = "Bahnschrift SemiCondensed", Color = "#C284FF",
+                    Alignment = "Near", Bold = false, Visible = true,
+                    ShadowAlpha = 0, ShadowOffsetX = 1, ShadowOffsetY = 1, ShadowBlur = 2,
+                    GlowAlpha = 0, GlowBlur = 0, GlowColor = "#C284FF"
+                },
+                ["Time"] = new()
+                {
+                    X = 291, Y = 30, Width = 112, Height = 37,
+                    FontSize = 21, FontFamily = "Bahnschrift SemiCondensed", Color = "#948BDC",
+                    Alignment = "Far", Bold = false, Visible = true,
+                    ShadowAlpha = 0, ShadowOffsetX = 1, ShadowOffsetY = 1, ShadowBlur = 2,
+                    GlowAlpha = 0, GlowBlur = 0, GlowColor = "#948BDC"
+                },
+                ["Countdown"] = new()
+                {
+                    X = 11, Y = 85, Width = 354, Height = 98,
+                    FontSize = 60.5F, FontFamily = "Bahnschrift SemiCondensed", Color = "#F6F1FF",
+                    Alignment = "Near", Bold = true, Visible = true,
+                    ShadowAlpha = 0, ShadowOffsetX = 1, ShadowOffsetY = 1, ShadowBlur = 2,
+                    GlowAlpha = 60, GlowBlur = 3, GlowColor = "#C284FF"
+                },
+                ["Location"] = new()
+                {
+                    X = 22, Y = 187, Width = 339, Height = 28,
+                    FontSize = 14.5F, FontFamily = "Bahnschrift SemiCondensed", Color = "#CDB9FF",
+                    Alignment = "Near", Bold = false, Visible = true,
+                    ShadowAlpha = 0, ShadowOffsetX = 1, ShadowOffsetY = 1, ShadowBlur = 2,
+                    GlowAlpha = 0, GlowBlur = 0, GlowColor = "#CDB9FF"
+                },
+                ["Detail"] = new()
+                {
+                    X = 26, Y = 225, Width = 210, Height = 18,
+                    FontSize = 7.5F, FontFamily = "Segoe UI", Color = "#948BDC",
+                    Alignment = "Near", Bold = false, Visible = false,
+                    ShadowAlpha = 0, ShadowOffsetX = 1, ShadowOffsetY = 1, ShadowBlur = 2,
+                    GlowAlpha = 0, GlowBlur = 0, GlowColor = "#948BDC"
+                }
+            }
+        }
+    };
+
+    public static WidgetThemeCustomization? CreateDefaultWidgetThemeCustomization(string themeKey)
+    {
+        Dictionary<string, WidgetThemeCustomization> defaults = CreateDefaultWidgetThemeCustomizations();
+        return defaults.TryGetValue(themeKey, out WidgetThemeCustomization? customization)
+            ? customization.Clone()
+            : null;
+    }
+
     public int GetIqamahOffset(string prayerName)
     {
         if (IqamahOffsetsMinutes.TryGetValue(prayerName, out int minutes))
@@ -100,6 +266,23 @@ public sealed class AppSettings
         IqamahOffsetsMinutes ??= CreateDefaultIqamahOffsets();
         PrayerAdjustmentsMinutes ??= CreateDefaultPrayerAdjustments();
         WidgetThemeCustomizations ??= new Dictionary<string, WidgetThemeCustomization>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var pair in CreateDefaultWidgetThemeCustomizations())
+        {
+            if (!WidgetThemeCustomizations.TryGetValue(pair.Key, out WidgetThemeCustomization? existing))
+            {
+                WidgetThemeCustomizations[pair.Key] = pair.Value.Clone();
+                continue;
+            }
+
+            existing.Width ??= pair.Value.Width;
+            existing.Height ??= pair.Value.Height;
+            existing.Elements ??= new Dictionary<string, WidgetTextCustomization>(StringComparer.OrdinalIgnoreCase);
+            foreach (var elementPair in pair.Value.Elements)
+            {
+                existing.Elements.TryAdd(elementPair.Key, elementPair.Value.Clone());
+            }
+        }
 
         foreach (var pair in CreateDefaultIqamahOffsets())
         {

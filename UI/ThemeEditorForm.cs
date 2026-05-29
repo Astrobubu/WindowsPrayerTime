@@ -383,7 +383,17 @@ public sealed class ThemeEditorForm : Form
 
     private void ResetTheme()
     {
-        Settings.WidgetThemeCustomizations.Remove(CurrentTheme().Key);
+        string themeKey = CurrentTheme().Key;
+        WidgetThemeCustomization? defaultCustomization = AppSettings.CreateDefaultWidgetThemeCustomization(themeKey);
+        if (defaultCustomization is null)
+        {
+            Settings.WidgetThemeCustomizations.Remove(themeKey);
+        }
+        else
+        {
+            Settings.WidgetThemeCustomizations[themeKey] = defaultCustomization;
+        }
+
         LoadTheme();
     }
 
