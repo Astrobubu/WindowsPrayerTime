@@ -153,6 +153,16 @@ public sealed class AppSettings
             customization.ShadowBlur = customization.ShadowBlur is null ? null : Math.Clamp(customization.ShadowBlur.Value, 0, 12);
             customization.GlowAlpha = customization.GlowAlpha is null ? null : Math.Clamp(customization.GlowAlpha.Value, 0, 255);
             customization.GlowBlur = customization.GlowBlur is null ? null : Math.Clamp(customization.GlowBlur.Value, 0, 16);
+
+            foreach (WidgetTextCustomization element in customization.Elements.Values)
+            {
+                element.ShadowAlpha = element.ShadowAlpha is null ? null : Math.Clamp(element.ShadowAlpha.Value, 0, 255);
+                element.ShadowOffsetX = element.ShadowOffsetX is null ? null : Math.Clamp(element.ShadowOffsetX.Value, -12, 12);
+                element.ShadowOffsetY = element.ShadowOffsetY is null ? null : Math.Clamp(element.ShadowOffsetY.Value, -12, 12);
+                element.ShadowBlur = element.ShadowBlur is null ? null : Math.Clamp(element.ShadowBlur.Value, 0, 12);
+                element.GlowAlpha = element.GlowAlpha is null ? null : Math.Clamp(element.GlowAlpha.Value, 0, 255);
+                element.GlowBlur = element.GlowBlur is null ? null : Math.Clamp(element.GlowBlur.Value, 0, 16);
+            }
         }
     }
 }
@@ -203,6 +213,13 @@ public sealed class WidgetTextCustomization
     public string? Alignment { get; set; }
     public bool? Bold { get; set; }
     public bool? Visible { get; set; }
+    public int? ShadowAlpha { get; set; }
+    public int? ShadowOffsetX { get; set; }
+    public int? ShadowOffsetY { get; set; }
+    public int? ShadowBlur { get; set; }
+    public int? GlowAlpha { get; set; }
+    public int? GlowBlur { get; set; }
+    public string? GlowColor { get; set; }
 
     public WidgetTextCustomization Clone()
     {
@@ -217,7 +234,14 @@ public sealed class WidgetTextCustomization
             Color = Color,
             Alignment = Alignment,
             Bold = Bold,
-            Visible = Visible
+            Visible = Visible,
+            ShadowAlpha = ShadowAlpha,
+            ShadowOffsetX = ShadowOffsetX,
+            ShadowOffsetY = ShadowOffsetY,
+            ShadowBlur = ShadowBlur,
+            GlowAlpha = GlowAlpha,
+            GlowBlur = GlowBlur,
+            GlowColor = GlowColor
         };
     }
 }
