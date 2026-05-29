@@ -107,6 +107,7 @@ public sealed class PrayerTimeApplicationContext : ApplicationContext
         _contextMenu.Items.Add(_refreshMenuItem);
         _contextMenu.Items.Add("Settings", null, (_, _) => OpenSettings());
         _contextMenu.Items.Add("Open settings folder", null, (_, _) => OpenSettingsFolder());
+        _contextMenu.Items.Add("About", null, (_, _) => OpenAbout());
         _contextMenu.Items.Add(new ToolStripSeparator());
         _contextMenu.Items.Add("Exit", null, (_, _) => ExitThread());
     }
@@ -348,6 +349,12 @@ public sealed class PrayerTimeApplicationContext : ApplicationContext
         UpdateThemeMenu();
         ToggleWidget(_settings.ShowDesktopWidget, save: false);
         _ = RefreshScheduleAsync(showErrors: true, force: true);
+    }
+
+    private void OpenAbout()
+    {
+        using var form = new AboutForm();
+        form.ShowDialog(_dashboard);
     }
 
     private void OpenThemeEditor()
