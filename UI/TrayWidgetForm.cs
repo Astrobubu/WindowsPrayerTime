@@ -247,7 +247,7 @@ public sealed class TrayWidgetForm : Form
             MaximumSize = Size;
             Padding = Padding.Empty;
             Opacity = 1;
-            BackColor = Color.Black;
+            BackColor = GetThemeTransparencyKey();
             TransparencyKey = BackColor;
             _layout.Visible = false;
             _layout.ResumeLayout();
@@ -305,9 +305,20 @@ public sealed class TrayWidgetForm : Form
         Invalidate();
     }
 
+    private Color GetThemeTransparencyKey()
+    {
+        return _theme.Key switch
+        {
+            WidgetThemeOptions.Glassy => Color.FromArgb(0, 224, 232),
+            WidgetThemeOptions.DarkPurple => Color.FromArgb(168, 64, 255),
+            WidgetThemeOptions.GoldDarkBlue => Color.FromArgb(195, 144, 65),
+            _ => Color.FromArgb(1, 2, 3)
+        };
+    }
+
     private void DrawThemedWidget(Graphics graphics)
     {
-        graphics.Clear(TransparencyKey);
+        graphics.Clear(GetThemeTransparencyKey());
         graphics.SmoothingMode = SmoothingMode.AntiAlias;
         graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
         graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
