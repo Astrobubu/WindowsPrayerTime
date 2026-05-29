@@ -32,7 +32,7 @@ A quiet Windows tray app for prayer times, Adhan reminders, and Iqamah nudges wh
 
 | Gold dark blue | Glassy cyan | Dark purple |
 | --- | --- | --- |
-| ![Gold dark blue theme](screenshots/theme-gold-dark-blue.png) | ![Glassy cyan theme](screenshots/theme-glassy-cyan.png) | ![Dark purple theme](screenshots/theme-dark-purple.png) |
+| ![Gold Dark Blue theme](screenshots/theme-gold-dark-blue.png) | ![Glassy cyan theme](screenshots/theme-glassy-cyan.png) | ![Dark purple theme](screenshots/theme-dark-purple.png) |
 
 ## How It Works
 
