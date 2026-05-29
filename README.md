@@ -2,6 +2,8 @@
 
 A quiet Windows tray app for prayer times, Adhan reminders, and Iqamah nudges while you are working at your PC.
 
+[About the creator and project](ABOUT.md) · [Constant Labs](https://constantlabs.ai/) · [GitHub repo](https://github.com/Astrobubu/WindowsPrayerTime) · [Releases](https://github.com/Astrobubu/WindowsPrayerTime/releases)
+
 ![Windows Prayer Time widget](screenshots/theme-gold-dark-blue.png)
 
 ## Highlights
