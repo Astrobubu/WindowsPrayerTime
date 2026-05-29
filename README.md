@@ -2,7 +2,7 @@
 
 A quiet Windows tray app for prayer times, Adhan reminders, and Iqamah nudges while you are working at your PC.
 
-![Windows Prayer Time widget](screenshots/widget-bottom-right.png)
+![Windows Prayer Time widget](screenshots/theme-gold-dark-blue.png)
 
 ## Highlights
 
