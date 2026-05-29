@@ -1,5 +1,6 @@
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
+using System.ComponentModel;
 using WindowsPrayerTime.Models;
 
 namespace WindowsPrayerTime.UI;
@@ -21,6 +22,7 @@ public sealed class ThemeEditorForm : Form
     private readonly ComboBox _fontBox = new();
     private readonly ComboBox _alignmentBox = new();
     private readonly TextBox _colorBox = new();
+    private readonly CheckBox _boldBox = new();
     private readonly CheckBox _visibleBox = new();
     private readonly ThemePreviewControl _preview = new();
     private bool _loading;
@@ -56,6 +58,7 @@ public sealed class ThemeEditorForm : Form
 
         _preview.Dock = DockStyle.Fill;
         _preview.BackColor = Color.FromArgb(18, 18, 22);
+        _preview.ElementMoved += OnPreviewElementMoved;
         root.Controls.Add(_preview, 0, 0);
 
         root.Controls.Add(BuildControls(), 1, 0);
@@ -94,6 +97,8 @@ public sealed class ThemeEditorForm : Form
         AddRow(layout, "Font", _fontBox);
         AddRow(layout, "Font size", _fontSizeBox, "pt");
         AddRow(layout, "Alignment", _alignmentBox);
+        _boldBox.Text = "Bold";
+        AddFullRow(layout, _boldBox);
 
         var colorPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2 };
         colorPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
@@ -126,6 +131,7 @@ public sealed class ThemeEditorForm : Form
         _fontBox.SelectedIndexChanged += (_, _) => ApplyControlValues();
         _alignmentBox.SelectedIndexChanged += (_, _) => ApplyControlValues();
         _colorBox.TextChanged += (_, _) => ApplyControlValues();
+        _boldBox.CheckedChanged += (_, _) => ApplyControlValues();
         _visibleBox.CheckedChanged += (_, _) => ApplyControlValues();
         _themeBox.SelectedIndexChanged += (_, _) =>
         {
@@ -225,8 +231,8 @@ public sealed class ThemeEditorForm : Form
         _loading = true;
         WidgetThemeDefinition theme = CurrentTheme();
         _themeBox.SelectedValue = theme.Key;
-        _widgetWidthBox.Value = CurrentCustomization().Width ?? theme.Size.Width;
-        _widgetHeightBox.Value = CurrentCustomization().Height ?? theme.Size.Height;
+        _widgetWidthBox.Value = CurrentCustomization().Width ?? theme.DisplaySize.Width;
+        _widgetHeightBox.Value = CurrentCustomization().Height ?? theme.DisplaySize.Height;
         _shadowAlphaBox.Value = CurrentCustomization().ShadowAlpha ?? theme.ShadowAlpha;
         _shadowXBox.Value = CurrentCustomization().ShadowOffsetX ?? 1;
         _shadowYBox.Value = CurrentCustomization().ShadowOffsetY ?? 1;
@@ -251,6 +257,7 @@ public sealed class ThemeEditorForm : Form
         _fontSizeBox.Value = (decimal)Math.Clamp(overrideValue?.FontSize ?? defaults.FontSize, (float)_fontSizeBox.Minimum, (float)_fontSizeBox.Maximum);
         _alignmentBox.SelectedItem = ToAlignmentText(ParseAlignment(overrideValue?.Alignment, defaults.Alignment));
         _colorBox.Text = overrideValue?.Color ?? ColorTranslator.ToHtml(defaults.Color);
+        _boldBox.Checked = overrideValue?.Bold ?? defaults.Bold;
         _visibleBox.Checked = overrideValue?.Visible ?? true;
         _loading = false;
         RefreshPreview();
@@ -285,8 +292,23 @@ public sealed class ThemeEditorForm : Form
             _ => "Near"
         };
         element.Color = string.IsNullOrWhiteSpace(_colorBox.Text) ? null : _colorBox.Text.Trim();
+        element.Bold = _boldBox.Checked;
         element.Visible = _visibleBox.Checked;
         RefreshPreview();
+    }
+
+    private void OnPreviewElementMoved(string elementKey, int x, int y)
+    {
+        if (!string.Equals(CurrentElementKey(), elementKey, StringComparison.OrdinalIgnoreCase))
+        {
+            _elementBox.SelectedValue = elementKey;
+        }
+
+        _loading = true;
+        _xBox.Value = Math.Clamp(x, (int)_xBox.Minimum, (int)_xBox.Maximum);
+        _yBox.Value = Math.Clamp(y, (int)_yBox.Minimum, (int)_yBox.Maximum);
+        _loading = false;
+        ApplyControlValues();
     }
 
     private void PickColor()
@@ -317,6 +339,7 @@ public sealed class ThemeEditorForm : Form
 
     private void RefreshPreview()
     {
+        _preview.SelectedElementKey = CurrentElementKey();
         _preview.UpdatePreview(
             CurrentTheme(),
             Settings.WidgetThemeCustomizations.TryGetValue(CurrentTheme().Key, out WidgetThemeCustomization? customization) ? customization : null);
@@ -459,12 +482,12 @@ public sealed class ThemeEditorForm : Form
     {
         return elementKey switch
         {
-            WidgetTextElementKeys.Primary => new ThemeTextDefaults(theme.PrimaryRect, theme.TitleFont, theme.PrimaryFontSize, theme.AccentColor, theme.PrimaryAlignment),
-            WidgetTextElementKeys.Time => new ThemeTextDefaults(theme.TimeRect, theme.BodyFont, theme.TimeFontSize, theme.MutedColor, theme.TimeAlignment),
-            WidgetTextElementKeys.Countdown => new ThemeTextDefaults(theme.CountdownRect, theme.DisplayFont, theme.CountdownFontSize, theme.CountdownColor, theme.CountdownAlignment),
-            WidgetTextElementKeys.Location => new ThemeTextDefaults(theme.LocationRect, theme.BodyFont, theme.LocationFontSize, theme.LocationColor, theme.LocationAlignment),
-            WidgetTextElementKeys.Detail => new ThemeTextDefaults(theme.DetailRect, theme.BodyFont, theme.DetailFontSize, theme.MutedColor, theme.DetailAlignment),
-            _ => new ThemeTextDefaults(Rectangle.Empty, theme.BodyFont, 9, theme.MutedColor, StringAlignment.Near)
+            WidgetTextElementKeys.Primary => new ThemeTextDefaults(theme.PrimaryRect, theme.TitleFont, theme.PrimaryFontSize, theme.AccentColor, theme.PrimaryAlignment, false),
+            WidgetTextElementKeys.Time => new ThemeTextDefaults(theme.TimeRect, theme.BodyFont, theme.TimeFontSize, theme.MutedColor, theme.TimeAlignment, false),
+            WidgetTextElementKeys.Countdown => new ThemeTextDefaults(theme.CountdownRect, theme.DisplayFont, theme.CountdownFontSize, theme.CountdownColor, theme.CountdownAlignment, true),
+            WidgetTextElementKeys.Location => new ThemeTextDefaults(theme.LocationRect, theme.BodyFont, theme.LocationFontSize, theme.LocationColor, theme.LocationAlignment, false),
+            WidgetTextElementKeys.Detail => new ThemeTextDefaults(theme.DetailRect, theme.BodyFont, theme.DetailFontSize, theme.MutedColor, theme.DetailAlignment, false),
+            _ => new ThemeTextDefaults(Rectangle.Empty, theme.BodyFont, 9, theme.MutedColor, StringAlignment.Near, false)
         };
     }
 
@@ -518,7 +541,7 @@ public sealed class ThemeEditorForm : Form
     private sealed record ThemeOption(string Text, string Key);
 }
 
-internal sealed record ThemeTextDefaults(Rectangle Bounds, string FontFamily, float FontSize, Color Color, StringAlignment Alignment);
+internal sealed record ThemeTextDefaults(Rectangle Bounds, string FontFamily, float FontSize, Color Color, StringAlignment Alignment, bool Bold);
 
 internal sealed class ThemePreviewControl : Control
 {
@@ -533,6 +556,13 @@ internal sealed class ThemePreviewControl : Control
     private WidgetThemeDefinition _theme = WidgetThemeCatalog.Get(WidgetThemeOptions.GoldDarkBlue);
     private WidgetThemeCustomization? _customization;
     private Image? _themeImage;
+    private Rectangle _lastTarget;
+    private bool _dragging;
+    private Point _dragOffset;
+
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public string SelectedElementKey { get; set; } = WidgetTextElementKeys.Countdown;
+    public event Action<string, int, int>? ElementMoved;
 
     public ThemePreviewControl()
     {
@@ -546,7 +576,7 @@ internal sealed class ThemePreviewControl : Control
         _theme = theme;
         _customization = customization;
 
-        if (themeChanged)
+        if (themeChanged || _themeImage is null)
         {
             _themeImage?.Dispose();
             _themeImage = null;
@@ -570,21 +600,67 @@ internal sealed class ThemePreviewControl : Control
 
         Size previewSize = GetThemeSize();
         Rectangle target = FitRectangle(previewSize, ClientRectangle);
+        _lastTarget = target;
         if (_themeImage is not null)
         {
-            e.Graphics.DrawImage(_themeImage, target);
+            Rectangle source = new(_theme.SourceInset, _theme.SourceInset, _themeImage.Width - (_theme.SourceInset * 2), _themeImage.Height - (_theme.SourceInset * 2));
+            e.Graphics.DrawImage(_themeImage, target, source, GraphicsUnit.Pixel);
         }
 
         GraphicsState state = e.Graphics.Save();
         e.Graphics.TranslateTransform(target.X, target.Y);
         e.Graphics.ScaleTransform(target.Width / (float)_theme.Size.Width, target.Height / (float)_theme.Size.Height);
 
-        DrawElement(e.Graphics, WidgetTextElementKeys.Primary, _sampleState.PrimaryLabel, _theme.AccentColor, FontStyle.Bold);
+        DrawElement(e.Graphics, WidgetTextElementKeys.Primary, _sampleState.PrimaryLabel, _theme.AccentColor, FontStyle.Regular);
         DrawElement(e.Graphics, WidgetTextElementKeys.Time, _sampleState.TimeLabel, _theme.MutedColor, FontStyle.Regular);
         DrawElement(e.Graphics, WidgetTextElementKeys.Countdown, _sampleState.Countdown, _theme.CountdownColor, FontStyle.Bold);
         DrawElement(e.Graphics, WidgetTextElementKeys.Location, _sampleState.SecondaryLabel, _theme.LocationColor, FontStyle.Regular);
         DrawElement(e.Graphics, WidgetTextElementKeys.Detail, "Next prayer countdown", _theme.MutedColor, FontStyle.Regular);
+        DrawSelection(e.Graphics);
         e.Graphics.Restore(state);
+    }
+
+    protected override void OnMouseDown(MouseEventArgs e)
+    {
+        base.OnMouseDown(e);
+        if (e.Button != MouseButtons.Left || _lastTarget.IsEmpty)
+        {
+            return;
+        }
+
+        Point logical = ToLogicalPoint(e.Location);
+        foreach (string key in WidgetTextElementKeys.All.Reverse())
+        {
+            Rectangle bounds = ThemeEditorForm.GetBounds(GetElement(key), ThemeEditorForm.GetTextDefaults(_theme, key).Bounds);
+            if (bounds.Contains(logical))
+            {
+                SelectedElementKey = key;
+                _dragging = true;
+                _dragOffset = new Point(logical.X - bounds.X, logical.Y - bounds.Y);
+                Capture = true;
+                Invalidate();
+                return;
+            }
+        }
+    }
+
+    protected override void OnMouseMove(MouseEventArgs e)
+    {
+        base.OnMouseMove(e);
+        if (!_dragging)
+        {
+            return;
+        }
+
+        Point logical = ToLogicalPoint(e.Location);
+        ElementMoved?.Invoke(SelectedElementKey, logical.X - _dragOffset.X, logical.Y - _dragOffset.Y);
+    }
+
+    protected override void OnMouseUp(MouseEventArgs e)
+    {
+        base.OnMouseUp(e);
+        _dragging = false;
+        Capture = false;
     }
 
     protected override void Dispose(bool disposing)
@@ -613,7 +689,8 @@ internal sealed class ThemePreviewControl : Control
         StringAlignment alignment = ThemeEditorForm.ParseAlignment(element?.Alignment, defaults.Alignment);
         int shadowAlpha = Math.Clamp(_customization?.ShadowAlpha ?? _theme.ShadowAlpha, 0, 255);
 
-        using var font = new Font(fontFamily, fontSize, style, GraphicsUnit.Point);
+        bool bold = element?.Bold ?? defaults.Bold;
+        using var font = new Font(fontFamily, fontSize, bold ? FontStyle.Bold : FontStyle.Regular, GraphicsUnit.Point);
         using var brush = new SolidBrush(color);
         using var shadowBrush = new SolidBrush(Color.FromArgb(shadowAlpha, Color.Black));
         using var format = new StringFormat
@@ -645,7 +722,26 @@ internal sealed class ThemePreviewControl : Control
     private Size GetThemeSize()
     {
         return new Size(
-            Math.Clamp(_customization?.Width ?? _theme.Size.Width, 160, 900),
-            Math.Clamp(_customization?.Height ?? _theme.Size.Height, 80, 520));
+            Math.Clamp(_customization?.Width ?? _theme.DisplaySize.Width, 160, 900),
+            Math.Clamp(_customization?.Height ?? _theme.DisplaySize.Height, 80, 520));
+    }
+
+    private WidgetTextCustomization? GetElement(string key)
+    {
+        return _customization?.Elements.TryGetValue(key, out WidgetTextCustomization? element) == true ? element : null;
+    }
+
+    private Point ToLogicalPoint(Point point)
+    {
+        return new Point(
+            (int)((point.X - _lastTarget.X) * (_theme.Size.Width / (float)_lastTarget.Width)),
+            (int)((point.Y - _lastTarget.Y) * (_theme.Size.Height / (float)_lastTarget.Height)));
+    }
+
+    private void DrawSelection(Graphics graphics)
+    {
+        Rectangle bounds = ThemeEditorForm.GetBounds(GetElement(SelectedElementKey), ThemeEditorForm.GetTextDefaults(_theme, SelectedElementKey).Bounds);
+        using var pen = new Pen(Color.FromArgb(190, 255, 255, 255), 1) { DashStyle = DashStyle.Dash };
+        graphics.DrawRectangle(pen, bounds);
     }
 }

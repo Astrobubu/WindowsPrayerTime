@@ -314,7 +314,12 @@ public sealed class TrayWidgetForm : Form
 
         if (_themeImage is not null)
         {
-            graphics.DrawImage(_themeImage, ClientRectangle);
+            Rectangle source = new(
+                _theme.SourceInset,
+                _theme.SourceInset,
+                _themeImage.Width - (_theme.SourceInset * 2),
+                _themeImage.Height - (_theme.SourceInset * 2));
+            graphics.DrawImage(_themeImage, ClientRectangle, source, GraphicsUnit.Pixel);
         }
         else
         {
@@ -337,7 +342,7 @@ public sealed class TrayWidgetForm : Form
             _theme.PrimaryRect,
             _theme.TitleFont,
             _theme.PrimaryFontSize,
-            FontStyle.Bold,
+            FontStyle.Regular,
             accent,
             _theme.PrimaryAlignment);
         DrawThemeText(
@@ -388,8 +393,8 @@ public sealed class TrayWidgetForm : Form
     private Size GetThemeSize()
     {
         return new Size(
-            Math.Clamp(_customization?.Width ?? _theme.Size.Width, 160, 900),
-            Math.Clamp(_customization?.Height ?? _theme.Size.Height, 80, 520));
+            Math.Clamp(_customization?.Width ?? _theme.DisplaySize.Width, 160, 900),
+            Math.Clamp(_customization?.Height ?? _theme.DisplaySize.Height, 80, 520));
     }
 
     private void DrawThemeText(
@@ -415,7 +420,7 @@ public sealed class TrayWidgetForm : Form
             GetBounds(element, defaultBounds),
             element?.FontFamily ?? defaultFontFamily,
             element?.FontSize ?? defaultFontSize,
-            style,
+            element?.Bold ?? style.HasFlag(FontStyle.Bold) ? FontStyle.Bold : FontStyle.Regular,
             ParseColor(element?.Color, defaultColor),
             ParseAlignment(element?.Alignment, defaultAlignment));
     }
@@ -687,6 +692,8 @@ public sealed record WidgetThemeDefinition(
     string DisplayName,
     string AssetPath,
     Size Size,
+    Size DisplaySize,
+    int SourceInset,
     Rectangle PrimaryRect,
     Rectangle TimeRect,
     Rectangle CountdownRect,
@@ -724,6 +731,8 @@ public static class WidgetThemeCatalog
             "Simple compact",
             "",
             new Size(232, 96),
+            new Size(232, 96),
+            0,
             Rectangle.Empty,
             Rectangle.Empty,
             Rectangle.Empty,
@@ -748,18 +757,20 @@ public static class WidgetThemeCatalog
             "Gold dark blue",
             Path.Combine("Assets", "Themes", "gold-dark-blue.png"),
             new Size(420, 236),
-            new Rectangle(48, 50, 190, 26),
-            new Rectangle(268, 50, 104, 24),
-            new Rectangle(48, 76, 220, 56),
-            new Rectangle(48, 137, 250, 22),
+            new Size(260, 145),
+            0,
+            new Rectangle(113, 21, 190, 56),
+            new Rectangle(286, 32, 104, 24),
+            new Rectangle(81, 55, 250, 80),
+            new Rectangle(84, 137, 250, 22),
             new Rectangle(48, 160, 220, 18),
-            "Palatino Linotype",
+            "Raleway",
             "Constantia",
-            "Segoe UI",
-            11,
-            8.5f,
-            27,
-            8.5f,
+            "Raleway",
+            14,
+            14.5f,
+            48,
+            13,
             7.5f,
             Color.FromArgb(237, 188, 92),
             Color.FromArgb(255, 237, 198),
@@ -772,6 +783,8 @@ public static class WidgetThemeCatalog
             "Glassy cyan",
             Path.Combine("Assets", "Themes", "glassy.png"),
             new Size(420, 236),
+            new Size(260, 145),
+            3,
             new Rectangle(42, 48, 180, 24),
             new Rectangle(290, 48, 92, 24),
             new Rectangle(42, 78, 210, 54),
@@ -796,6 +809,8 @@ public static class WidgetThemeCatalog
             "Dark purple",
             Path.Combine("Assets", "Themes", "dark-purple.png"),
             new Size(420, 236),
+            new Size(260, 145),
+            0,
             new Rectangle(44, 56, 190, 26),
             new Rectangle(44, 84, 112, 22),
             new Rectangle(44, 104, 210, 56),

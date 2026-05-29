@@ -190,6 +190,7 @@ public sealed class WidgetTextCustomization
     public string? FontFamily { get; set; }
     public string? Color { get; set; }
     public string? Alignment { get; set; }
+    public bool? Bold { get; set; }
     public bool? Visible { get; set; }
 
     public WidgetTextCustomization Clone()
@@ -204,6 +205,7 @@ public sealed class WidgetTextCustomization
             FontFamily = FontFamily,
             Color = Color,
             Alignment = Alignment,
+            Bold = Bold,
             Visible = Visible
         };
     }

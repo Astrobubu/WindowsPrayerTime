@@ -70,8 +70,10 @@ Available settings:
   - Dark purple
 - Manual theme editor:
   - Resize the whole widget
+  - Drag text directly in the preview
   - Position and resize each text element
   - Pick fonts and font sizes
+  - Toggle bold per text element
   - Adjust colors and alignment
   - Soften or strengthen the text shadow
 - Sound, Adhan, and Iqamah alert toggles.
