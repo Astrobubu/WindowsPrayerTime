@@ -26,6 +26,12 @@ A quiet Windows tray app for prayer times, Adhan reminders, and Iqamah nudges wh
 - Start with Windows option.
 - Local JSON settings and cached timings.
 
+## Theme Previews
+
+| Gold dark blue | Glassy cyan | Dark purple |
+| --- | --- | --- |
+| ![Gold dark blue theme](screenshots/theme-gold-dark-blue.png) | ![Glassy cyan theme](screenshots/theme-glassy-cyan.png) | ![Dark purple theme](screenshots/theme-dark-purple.png) |
+
 ## How It Works
 
 Windows Prayer Time uses the free [AlAdhan Prayer Times API](https://aladhan.engconsults.com/rest-api.html). In auto-location mode, it first resolves an approximate location from the current network using [ipapi](https://ipapi.co/), then calls AlAdhan's coordinate-based timings endpoint.

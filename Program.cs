@@ -5,8 +5,14 @@ static class Program
     private static Mutex? _singleInstanceMutex;
 
     [STAThread]
-    static void Main()
+    static void Main(string[] args)
     {
+        if (args.Length > 0 && string.Equals(args[0], "--render-theme-screenshots", StringComparison.OrdinalIgnoreCase))
+        {
+            UI.ThemeScreenshotRenderer.Render(args.Length > 1 ? args[1] : null);
+            return;
+        }
+
         _singleInstanceMutex = new Mutex(true, "WindowsPrayerTime.SingleInstance", out bool createdNew);
         if (!createdNew)
         {
