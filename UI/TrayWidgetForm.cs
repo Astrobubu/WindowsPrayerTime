@@ -443,7 +443,6 @@ public sealed class TrayWidgetForm : Form
         using var font = new Font(fontFamily, fontSize, style, GraphicsUnit.Point);
         using var brush = new SolidBrush(color);
         int shadowAlpha = Math.Clamp(_customization?.ShadowAlpha ?? _theme.ShadowAlpha, 0, 255);
-        using var shadowBrush = new SolidBrush(Color.FromArgb(shadowAlpha, Color.Black));
         using var format = new StringFormat
         {
             Alignment = alignment,
@@ -452,9 +451,19 @@ public sealed class TrayWidgetForm : Form
             FormatFlags = StringFormatFlags.NoWrap
         };
 
-        Rectangle shadowBounds = bounds;
-        shadowBounds.Offset(_customization?.ShadowOffsetX ?? 1, _customization?.ShadowOffsetY ?? 1);
-        graphics.DrawString(text, font, shadowBrush, shadowBounds, format);
+        int shadowBlur = Math.Clamp(_customization?.ShadowBlur ?? 2, 0, 12);
+        int shadowX = _customization?.ShadowOffsetX ?? 1;
+        int shadowY = _customization?.ShadowOffsetY ?? 1;
+        TextEffectRenderer.DrawSoftText(graphics, text, font, format, bounds, Color.Black, shadowAlpha, shadowBlur, shadowX, shadowY);
+
+        int glowAlpha = Math.Clamp(_customization?.GlowAlpha ?? 0, 0, 255);
+        int glowBlur = Math.Clamp(_customization?.GlowBlur ?? 0, 0, 16);
+        if (glowAlpha > 0 && glowBlur > 0)
+        {
+            Color glowColor = ParseColor(_customization?.GlowColor, color);
+            TextEffectRenderer.DrawSoftText(graphics, text, font, format, bounds, glowColor, glowAlpha, glowBlur, 0, 0);
+        }
+
         graphics.DrawString(text, font, brush, bounds, format);
     }
 

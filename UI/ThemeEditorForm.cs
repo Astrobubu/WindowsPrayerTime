@@ -19,6 +19,10 @@ public sealed class ThemeEditorForm : Form
     private readonly NumericUpDown _shadowAlphaBox = CreateNumber(0, 255, 0);
     private readonly NumericUpDown _shadowXBox = CreateNumber(-12, 12, 0);
     private readonly NumericUpDown _shadowYBox = CreateNumber(-12, 12, 0);
+    private readonly NumericUpDown _shadowBlurBox = CreateNumber(0, 12, 0);
+    private readonly NumericUpDown _glowAlphaBox = CreateNumber(0, 255, 0);
+    private readonly NumericUpDown _glowBlurBox = CreateNumber(0, 16, 0);
+    private readonly TextBox _glowColorBox = new();
     private readonly ComboBox _fontBox = new();
     private readonly ComboBox _alignmentBox = new();
     private readonly TextBox _colorBox = new();
@@ -28,6 +32,7 @@ public sealed class ThemeEditorForm : Form
     private bool _loading;
 
     public AppSettings Settings { get; private set; }
+    public event EventHandler? Saved;
 
     public ThemeEditorForm(AppSettings settings)
     {
@@ -117,10 +122,23 @@ public sealed class ThemeEditorForm : Form
         AddRow(layout, "Opacity", _shadowAlphaBox);
         AddRow(layout, "Offset X", _shadowXBox, "px");
         AddRow(layout, "Offset Y", _shadowYBox, "px");
+        AddRow(layout, "Blur", _shadowBlurBox, "px");
+        AddSeparator(layout, "Glow");
+        AddRow(layout, "Glow opacity", _glowAlphaBox);
+        AddRow(layout, "Glow blur", _glowBlurBox, "px");
+        var glowPanel = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2 };
+        glowPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        glowPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 32));
+        _glowColorBox.Dock = DockStyle.Fill;
+        var glowButton = new Button { Text = "...", Dock = DockStyle.Fill };
+        glowButton.Click += (_, _) => PickGlowColor();
+        glowPanel.Controls.Add(_glowColorBox, 0, 0);
+        glowPanel.Controls.Add(glowButton, 1, 0);
+        AddRow(layout, "Glow color", glowPanel);
 
         foreach (Control control in new Control[]
         {
-            _widgetWidthBox, _widgetHeightBox, _xBox, _yBox, _widthBox, _heightBox, _fontSizeBox, _shadowAlphaBox, _shadowXBox, _shadowYBox
+            _widgetWidthBox, _widgetHeightBox, _xBox, _yBox, _widthBox, _heightBox, _fontSizeBox, _shadowAlphaBox, _shadowXBox, _shadowYBox, _shadowBlurBox, _glowAlphaBox, _glowBlurBox
         })
         {
             if (control is NumericUpDown box)
@@ -132,6 +150,7 @@ public sealed class ThemeEditorForm : Form
         _fontBox.SelectedIndexChanged += (_, _) => ApplyControlValues();
         _alignmentBox.SelectedIndexChanged += (_, _) => ApplyControlValues();
         _colorBox.TextChanged += (_, _) => ApplyControlValues();
+        _glowColorBox.TextChanged += (_, _) => ApplyControlValues();
         _boldBox.CheckedChanged += (_, _) => ApplyControlValues();
         _visibleBox.CheckedChanged += (_, _) => ApplyControlValues();
         _themeBox.SelectedIndexChanged += (_, _) =>
@@ -167,15 +186,15 @@ public sealed class ThemeEditorForm : Form
         var saveButton = new Button { Text = "Save", Width = 90, Height = 30 };
         saveButton.Click += (_, _) =>
         {
-            DialogResult = DialogResult.OK;
-            Close();
+            ApplyControlValues();
+            Saved?.Invoke(this, EventArgs.Empty);
         };
         buttons.Controls.Add(saveButton);
 
-        var cancelButton = new Button { Text = "Cancel", Width = 90, Height = 30 };
+        var cancelButton = new Button { Text = "Close", Width = 90, Height = 30 };
         cancelButton.Click += (_, _) =>
         {
-            DialogResult = DialogResult.Cancel;
+            DialogResult = DialogResult.OK;
             Close();
         };
         buttons.Controls.Add(cancelButton);
@@ -237,6 +256,10 @@ public sealed class ThemeEditorForm : Form
         _shadowAlphaBox.Value = CurrentCustomization().ShadowAlpha ?? theme.ShadowAlpha;
         _shadowXBox.Value = CurrentCustomization().ShadowOffsetX ?? 1;
         _shadowYBox.Value = CurrentCustomization().ShadowOffsetY ?? 1;
+        _shadowBlurBox.Value = CurrentCustomization().ShadowBlur ?? 2;
+        _glowAlphaBox.Value = CurrentCustomization().GlowAlpha ?? 0;
+        _glowBlurBox.Value = CurrentCustomization().GlowBlur ?? 0;
+        _glowColorBox.Text = CurrentCustomization().GlowColor ?? ColorTranslator.ToHtml(theme.AccentColor);
         _loading = false;
         LoadElement();
         RefreshPreview();
@@ -277,6 +300,10 @@ public sealed class ThemeEditorForm : Form
         customization.ShadowAlpha = (int)_shadowAlphaBox.Value;
         customization.ShadowOffsetX = (int)_shadowXBox.Value;
         customization.ShadowOffsetY = (int)_shadowYBox.Value;
+        customization.ShadowBlur = (int)_shadowBlurBox.Value;
+        customization.GlowAlpha = (int)_glowAlphaBox.Value;
+        customization.GlowBlur = (int)_glowBlurBox.Value;
+        customization.GlowColor = string.IsNullOrWhiteSpace(_glowColorBox.Text) ? null : _glowColorBox.Text.Trim();
 
         string elementKey = CurrentElementKey();
         WidgetTextCustomization element = EnsureElementOverride(elementKey);
@@ -337,6 +364,20 @@ public sealed class ThemeEditorForm : Form
         if (dialog.ShowDialog(this) == DialogResult.OK)
         {
             _colorBox.Text = ColorTranslator.ToHtml(dialog.Color);
+        }
+    }
+
+    private void PickGlowColor()
+    {
+        using var dialog = new ColorDialog
+        {
+            FullOpen = true,
+            Color = ParseColor(_glowColorBox.Text, CurrentTheme().AccentColor)
+        };
+
+        if (dialog.ShowDialog(this) == DialogResult.OK)
+        {
+            _glowColorBox.Text = ColorTranslator.ToHtml(dialog.Color);
         }
     }
 
@@ -709,7 +750,6 @@ internal sealed class ThemePreviewControl : Control
         bool bold = element?.Bold ?? defaults.Bold;
         using var font = new Font(fontFamily, fontSize, bold ? FontStyle.Bold : FontStyle.Regular, GraphicsUnit.Point);
         using var brush = new SolidBrush(color);
-        using var shadowBrush = new SolidBrush(Color.FromArgb(shadowAlpha, Color.Black));
         using var format = new StringFormat
         {
             Alignment = alignment,
@@ -718,9 +758,33 @@ internal sealed class ThemePreviewControl : Control
             FormatFlags = StringFormatFlags.NoWrap
         };
 
-        Rectangle shadowBounds = bounds;
-        shadowBounds.Offset(_customization?.ShadowOffsetX ?? 1, _customization?.ShadowOffsetY ?? 1);
-        graphics.DrawString(text, font, shadowBrush, shadowBounds, format);
+        TextEffectRenderer.DrawSoftText(
+            graphics,
+            text,
+            font,
+            format,
+            bounds,
+            Color.Black,
+            shadowAlpha,
+            _customization?.ShadowBlur ?? 2,
+            _customization?.ShadowOffsetX ?? 1,
+            _customization?.ShadowOffsetY ?? 1);
+
+        if ((_customization?.GlowAlpha ?? 0) > 0 && (_customization?.GlowBlur ?? 0) > 0)
+        {
+            TextEffectRenderer.DrawSoftText(
+                graphics,
+                text,
+                font,
+                format,
+                bounds,
+                ThemeEditorForm.ParseColor(_customization?.GlowColor, color),
+                _customization?.GlowAlpha ?? 0,
+                _customization?.GlowBlur ?? 0,
+                0,
+                0);
+        }
+
         graphics.DrawString(text, font, brush, bounds, format);
     }
 

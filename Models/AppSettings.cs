@@ -150,6 +150,9 @@ public sealed class AppSettings
             customization.ShadowAlpha = customization.ShadowAlpha is null ? null : Math.Clamp(customization.ShadowAlpha.Value, 0, 255);
             customization.ShadowOffsetX = customization.ShadowOffsetX is null ? null : Math.Clamp(customization.ShadowOffsetX.Value, -12, 12);
             customization.ShadowOffsetY = customization.ShadowOffsetY is null ? null : Math.Clamp(customization.ShadowOffsetY.Value, -12, 12);
+            customization.ShadowBlur = customization.ShadowBlur is null ? null : Math.Clamp(customization.ShadowBlur.Value, 0, 12);
+            customization.GlowAlpha = customization.GlowAlpha is null ? null : Math.Clamp(customization.GlowAlpha.Value, 0, 255);
+            customization.GlowBlur = customization.GlowBlur is null ? null : Math.Clamp(customization.GlowBlur.Value, 0, 16);
         }
     }
 }
@@ -161,6 +164,10 @@ public sealed class WidgetThemeCustomization
     public int? ShadowAlpha { get; set; }
     public int? ShadowOffsetX { get; set; }
     public int? ShadowOffsetY { get; set; }
+    public int? ShadowBlur { get; set; }
+    public int? GlowAlpha { get; set; }
+    public int? GlowBlur { get; set; }
+    public string? GlowColor { get; set; }
     public Dictionary<string, WidgetTextCustomization> Elements { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
     public WidgetThemeCustomization Clone()
@@ -172,6 +179,10 @@ public sealed class WidgetThemeCustomization
             ShadowAlpha = ShadowAlpha,
             ShadowOffsetX = ShadowOffsetX,
             ShadowOffsetY = ShadowOffsetY,
+            ShadowBlur = ShadowBlur,
+            GlowAlpha = GlowAlpha,
+            GlowBlur = GlowBlur,
+            GlowColor = GlowColor,
             Elements = Elements.ToDictionary(
                 pair => pair.Key,
                 pair => pair.Value.Clone(),

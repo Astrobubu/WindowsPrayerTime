@@ -353,15 +353,22 @@ public sealed class PrayerTimeApplicationContext : ApplicationContext
     private void OpenThemeEditor()
     {
         using var form = new ThemeEditorForm(_settings);
-        if (form.ShowDialog(_dashboard) != DialogResult.OK)
-        {
-            return;
-        }
+        form.Saved += (_, _) => ApplyThemeEditorSettings(form.Settings);
 
-        _settings = form.Settings;
+        if (form.ShowDialog(_dashboard) == DialogResult.OK)
+        {
+            ApplyThemeEditorSettings(form.Settings);
+        }
+    }
+
+    private void ApplyThemeEditorSettings(AppSettings settings)
+    {
+        _settings = settings;
+        _settings.EnsureDefaults();
         _settings.ShowDesktopWidget = true;
         _settingsStore.Save(_settings);
         _showWidgetMenuItem.Checked = true;
+        UpdatePlacementMenu();
         UpdateThemeMenu();
         ShowWidget();
     }

@@ -206,13 +206,17 @@ public sealed class SettingsForm : Form
     {
         SaveControlsToSettings();
         using var form = new ThemeEditorForm(Settings);
-        if (form.ShowDialog(this) != DialogResult.OK)
+        form.Saved += (_, _) =>
         {
-            return;
-        }
+            Settings = form.Settings;
+            LoadSettings();
+        };
 
-        Settings = form.Settings;
-        LoadSettings();
+        if (form.ShowDialog(this) == DialogResult.OK)
+        {
+            Settings = form.Settings;
+            LoadSettings();
+        }
     }
 
     private void LoadSettings()
