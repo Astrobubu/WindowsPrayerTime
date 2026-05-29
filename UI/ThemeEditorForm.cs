@@ -58,6 +58,7 @@ public sealed class ThemeEditorForm : Form
 
         _preview.Dock = DockStyle.Fill;
         _preview.BackColor = Color.FromArgb(18, 18, 22);
+        _preview.ElementSelected += OnPreviewElementSelected;
         _preview.ElementMoved += OnPreviewElementMoved;
         root.Controls.Add(_preview, 0, 0);
 
@@ -299,16 +300,30 @@ public sealed class ThemeEditorForm : Form
 
     private void OnPreviewElementMoved(string elementKey, int x, int y)
     {
-        if (!string.Equals(CurrentElementKey(), elementKey, StringComparison.OrdinalIgnoreCase))
-        {
-            _elementBox.SelectedValue = elementKey;
-        }
+        SelectPreviewElement(elementKey);
 
         _loading = true;
         _xBox.Value = Math.Clamp(x, (int)_xBox.Minimum, (int)_xBox.Maximum);
         _yBox.Value = Math.Clamp(y, (int)_yBox.Minimum, (int)_yBox.Maximum);
         _loading = false;
         ApplyControlValues();
+    }
+
+    private void OnPreviewElementSelected(string elementKey)
+    {
+        SelectPreviewElement(elementKey);
+    }
+
+    private void SelectPreviewElement(string elementKey)
+    {
+        if (string.Equals(CurrentElementKey(), elementKey, StringComparison.OrdinalIgnoreCase))
+        {
+            RefreshPreview();
+            return;
+        }
+
+        _elementBox.SelectedValue = elementKey;
+        LoadElement();
     }
 
     private void PickColor()
@@ -562,6 +577,7 @@ internal sealed class ThemePreviewControl : Control
 
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public string SelectedElementKey { get; set; } = WidgetTextElementKeys.Countdown;
+    public event Action<string>? ElementSelected;
     public event Action<string, int, int>? ElementMoved;
 
     public ThemePreviewControl()
@@ -635,6 +651,7 @@ internal sealed class ThemePreviewControl : Control
             if (bounds.Contains(logical))
             {
                 SelectedElementKey = key;
+                ElementSelected?.Invoke(key);
                 _dragging = true;
                 _dragOffset = new Point(logical.X - bounds.X, logical.Y - bounds.Y);
                 Capture = true;
