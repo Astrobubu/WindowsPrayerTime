@@ -18,6 +18,9 @@ public sealed class TrayWidgetForm : Form
     private WidgetThemeDefinition _theme = WidgetThemeCatalog.Get(WidgetThemeOptions.Simple);
     private WidgetThemeCustomization? _customization;
     private Image? _themeImage;
+    private Bitmap? _themedStaticCache;
+    private string _themedStaticCacheKey = "";
+    private bool _themedStaticCacheDirty = true;
     private WidgetState? _currentState;
 
     public event EventHandler? OpenRequested;
@@ -113,12 +116,14 @@ public sealed class TrayWidgetForm : Form
 
         if (sameTheme)
         {
+            MarkThemedStaticCacheDirty();
             Invalidate();
             return;
         }
 
         _theme = nextTheme;
         LoadThemeImage();
+        MarkThemedStaticCacheDirty();
 
         RebuildLayout();
     }
@@ -126,6 +131,7 @@ public sealed class TrayWidgetForm : Form
     public void ApplyCustomization(WidgetThemeCustomization? customization)
     {
         _customization = customization;
+        MarkThemedStaticCacheDirty();
         Invalidate();
     }
 
@@ -146,16 +152,22 @@ public sealed class TrayWidgetForm : Form
 
     public void UpdateState(WidgetState state)
     {
+        WidgetState? previousState = _currentState;
         _currentState = state;
 
-        _primaryLabel.Text = _placement == WidgetPlacementOptions.TaskbarBand
+        if (IsThemedAboveTaskbar && ThemedStaticTextChanged(previousState, state))
+        {
+            MarkThemedStaticCacheDirty();
+        }
+
+        SetLabelText(_primaryLabel, _placement == WidgetPlacementOptions.TaskbarBand
             ? CompactPrimaryLabel(state.PrimaryLabel)
-            : state.PrimaryLabel;
-        _countdownLabel.Text = state.Countdown;
-        _timeLabel.Text = _placement == WidgetPlacementOptions.TaskbarBand
+            : state.PrimaryLabel);
+        SetLabelText(_countdownLabel, state.Countdown);
+        SetLabelText(_timeLabel, _placement == WidgetPlacementOptions.TaskbarBand
             ? CompactTimeLabel(state.TimeLabel)
-            : state.TimeLabel;
-        _secondaryLabel.Text = state.SecondaryLabel;
+            : state.TimeLabel);
+        SetLabelText(_secondaryLabel, state.SecondaryLabel);
 
         if (!IsThemedAboveTaskbar)
         {
@@ -224,6 +236,7 @@ public sealed class TrayWidgetForm : Form
     {
         if (disposing)
         {
+            _themedStaticCache?.Dispose();
             _themeImage?.Dispose();
         }
 
@@ -252,10 +265,12 @@ public sealed class TrayWidgetForm : Form
             _layout.Visible = false;
             _layout.ResumeLayout();
             PlaceNearTaskbar();
+            MarkThemedStaticCacheDirty();
             Invalidate();
             return;
         }
 
+        MarkThemedStaticCacheDirty();
         TransparencyKey = Color.Empty;
         Opacity = 0.96;
         _layout.Visible = true;
@@ -318,6 +333,60 @@ public sealed class TrayWidgetForm : Form
 
     private void DrawThemedWidget(Graphics graphics)
     {
+        graphics.SmoothingMode = SmoothingMode.AntiAlias;
+        graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+        graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+
+        EnsureThemedStaticCache();
+        if (_themedStaticCache is not null)
+        {
+            graphics.DrawImageUnscaled(_themedStaticCache, Point.Empty);
+        }
+        else
+        {
+            graphics.Clear(GetThemeTransparencyKey());
+        }
+
+        WidgetState state = _currentState ?? new WidgetState("Loading", "--:--", "", "", false, null);
+        Color countdown = state.IsIqamahCountdown ? _theme.WarningColor : _theme.CountdownColor;
+
+        GraphicsState textState = graphics.Save();
+        graphics.ScaleTransform(Width / (float)_theme.Size.Width, Height / (float)_theme.Size.Height);
+        DrawThemeText(
+            graphics,
+            WidgetTextElementKeys.Countdown,
+            state.Countdown,
+            _theme.CountdownRect,
+            _theme.DisplayFont,
+            _theme.CountdownFontSize,
+            FontStyle.Bold,
+            countdown,
+            _theme.CountdownAlignment);
+        graphics.Restore(textState);
+    }
+
+    private void EnsureThemedStaticCache()
+    {
+        string cacheKey = BuildThemedStaticCacheKey();
+        if (!_themedStaticCacheDirty &&
+            _themedStaticCache is not null &&
+            _themedStaticCache.Width == Width &&
+            _themedStaticCache.Height == Height &&
+            string.Equals(_themedStaticCacheKey, cacheKey, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _themedStaticCache?.Dispose();
+        _themedStaticCache = new Bitmap(Math.Max(1, Width), Math.Max(1, Height));
+        using Graphics graphics = Graphics.FromImage(_themedStaticCache);
+        DrawThemedStaticLayer(graphics);
+        _themedStaticCacheKey = cacheKey;
+        _themedStaticCacheDirty = false;
+    }
+
+    private void DrawThemedStaticLayer(Graphics graphics)
+    {
         graphics.Clear(GetThemeTransparencyKey());
         graphics.SmoothingMode = SmoothingMode.AntiAlias;
         graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
@@ -341,7 +410,6 @@ public sealed class TrayWidgetForm : Form
 
         WidgetState state = _currentState ?? new WidgetState("Loading", "--:--", "", "", false, null);
         Color accent = state.IsIqamahCountdown ? _theme.WarningColor : _theme.AccentColor;
-        Color countdown = state.IsIqamahCountdown ? _theme.WarningColor : _theme.CountdownColor;
 
         GraphicsState textState = graphics.Save();
         graphics.ScaleTransform(Width / (float)_theme.Size.Width, Height / (float)_theme.Size.Height);
@@ -368,16 +436,6 @@ public sealed class TrayWidgetForm : Form
             _theme.TimeAlignment);
         DrawThemeText(
             graphics,
-            WidgetTextElementKeys.Countdown,
-            state.Countdown,
-            _theme.CountdownRect,
-            _theme.DisplayFont,
-            _theme.CountdownFontSize,
-            FontStyle.Bold,
-            countdown,
-            _theme.CountdownAlignment);
-        DrawThemeText(
-            graphics,
             WidgetTextElementKeys.Location,
             state.SecondaryLabel,
             _theme.LocationRect,
@@ -399,6 +457,43 @@ public sealed class TrayWidgetForm : Form
             _theme.MutedColor,
             _theme.DetailAlignment);
         graphics.Restore(textState);
+    }
+
+    private string BuildThemedStaticCacheKey()
+    {
+        WidgetState state = _currentState ?? new WidgetState("Loading", "--:--", "", "", false, null);
+        return string.Join(
+            "|",
+            _theme.Key,
+            Width,
+            Height,
+            state.PrimaryLabel,
+            state.TimeLabel,
+            state.SecondaryLabel,
+            state.IsIqamahCountdown,
+            _customization?.GetHashCode() ?? 0);
+    }
+
+    private void MarkThemedStaticCacheDirty()
+    {
+        _themedStaticCacheDirty = true;
+    }
+
+    private static bool ThemedStaticTextChanged(WidgetState? previousState, WidgetState nextState)
+    {
+        return previousState is null ||
+            !string.Equals(previousState.PrimaryLabel, nextState.PrimaryLabel, StringComparison.Ordinal) ||
+            !string.Equals(previousState.TimeLabel, nextState.TimeLabel, StringComparison.Ordinal) ||
+            !string.Equals(previousState.SecondaryLabel, nextState.SecondaryLabel, StringComparison.Ordinal) ||
+            previousState.IsIqamahCountdown != nextState.IsIqamahCountdown;
+    }
+
+    private static void SetLabelText(Label label, string text)
+    {
+        if (!string.Equals(label.Text, text, StringComparison.Ordinal))
+        {
+            label.Text = text;
+        }
     }
 
     private Size GetThemeSize()

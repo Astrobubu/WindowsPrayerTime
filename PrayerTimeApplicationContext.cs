@@ -306,7 +306,10 @@ public sealed class PrayerTimeApplicationContext : ApplicationContext
             _widget.UpdateState(state);
         }
 
-        _dashboard?.UpdateSchedule(_schedule, _settings, now, _status);
+        if (_dashboard?.Visible == true)
+        {
+            _dashboard.UpdateSchedule(_schedule, _settings, now, _status);
+        }
 
         string tooltip = $"Windows Prayer Time - {state.PrimaryLabel} {state.Countdown} ({state.TimeLabel})";
         _notifyIcon.Text = LimitTooltip(tooltip);
