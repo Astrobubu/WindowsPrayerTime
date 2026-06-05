@@ -446,8 +446,10 @@ public sealed class PrayerTimeApplicationContext : ApplicationContext
         {
             _widget = new TrayWidgetForm(_contextMenu);
             _widget.OpenRequested += (_, _) => OpenDashboard();
+            _widget.PositionChanged += OnWidgetPositionChanged;
         }
 
+        _widget.ApplySavedPosition(_settings.WidgetLeft, _settings.WidgetTop, _settings.WidgetScreenDeviceName);
         _widget.ApplyTheme(
             _settings.WidgetTheme,
             _settings.WidgetThemeCustomizations.TryGetValue(_settings.WidgetTheme, out WidgetThemeCustomization? customization)
@@ -457,6 +459,14 @@ public sealed class PrayerTimeApplicationContext : ApplicationContext
         _widget.UpdateState(WidgetStateFactory.FromSchedule(_schedule, _settings, DateTime.Now));
         _widget.Show();
         _widget.PlaceNearTaskbar();
+    }
+
+    private void OnWidgetPositionChanged(object? sender, WidgetPositionChangedEventArgs e)
+    {
+        _settings.WidgetLeft = e.Left;
+        _settings.WidgetTop = e.Top;
+        _settings.WidgetScreenDeviceName = e.ScreenDeviceName;
+        _settingsStore.Save(_settings);
     }
 
     private void HideWidget()

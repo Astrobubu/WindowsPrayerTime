@@ -13,7 +13,10 @@ public sealed class TrayWidgetForm : Form
     private readonly Label _secondaryLabel = new();
     private readonly TableLayoutPanel _layout = new();
     private bool _isDragging;
+    private bool _dragMoved;
     private Point _dragStart;
+    private Point? _savedLocation;
+    private string? _savedScreenDeviceName;
     private string _placement = WidgetPlacementOptions.AboveTaskbar;
     private WidgetThemeDefinition _theme = WidgetThemeCatalog.Get(WidgetThemeOptions.Simple);
     private WidgetThemeCustomization? _customization;
@@ -24,6 +27,7 @@ public sealed class TrayWidgetForm : Form
     private WidgetState? _currentState;
 
     public event EventHandler? OpenRequested;
+    public event EventHandler<WidgetPositionChangedEventArgs>? PositionChanged;
 
     protected override bool ShowWithoutActivation => true;
 
@@ -108,6 +112,14 @@ public sealed class TrayWidgetForm : Form
         RebuildLayout();
     }
 
+    public void ApplySavedPosition(int? left, int? top, string? screenDeviceName)
+    {
+        _savedLocation = left is not null && top is not null
+            ? new Point(left.Value, top.Value)
+            : null;
+        _savedScreenDeviceName = string.IsNullOrWhiteSpace(screenDeviceName) ? null : screenDeviceName;
+    }
+
     public void ApplyTheme(string themeKey, WidgetThemeCustomization? customization = null)
     {
         WidgetThemeDefinition nextTheme = WidgetThemeCatalog.Get(themeKey);
@@ -181,7 +193,12 @@ public sealed class TrayWidgetForm : Form
     {
         if (_placement == WidgetPlacementOptions.AboveTaskbar)
         {
-            Rectangle workingArea = Screen.PrimaryScreen?.WorkingArea ?? Screen.AllScreens[0].WorkingArea;
+            if (TryPlaceAtSavedPosition())
+            {
+                return;
+            }
+
+            Rectangle workingArea = ResolvePreferredScreen().WorkingArea;
             Location = new Point(workingArea.Right - Width - 12, workingArea.Bottom - Height - 12);
             PinTopmost();
             return;
@@ -627,6 +644,7 @@ public sealed class TrayWidgetForm : Form
         }
 
         _isDragging = true;
+        _dragMoved = false;
         _dragStart = e.Location;
     }
 
@@ -639,11 +657,59 @@ public sealed class TrayWidgetForm : Form
 
         Point screenPoint = PointToScreen(e.Location);
         Location = new Point(screenPoint.X - _dragStart.X, screenPoint.Y - _dragStart.Y);
+        _dragMoved = true;
     }
 
     private void EndDrag(object? sender, MouseEventArgs e)
     {
+        if (_isDragging && _dragMoved)
+        {
+            Screen screen = Screen.FromRectangle(Bounds);
+            _savedLocation = Location;
+            _savedScreenDeviceName = screen.DeviceName;
+            PositionChanged?.Invoke(
+                this,
+                new WidgetPositionChangedEventArgs(Location.X, Location.Y, screen.DeviceName));
+        }
+
         _isDragging = false;
+        _dragMoved = false;
+    }
+
+    private bool TryPlaceAtSavedPosition()
+    {
+        if (_savedLocation is null)
+        {
+            return false;
+        }
+
+        Screen screen = ResolvePreferredScreen();
+        Rectangle area = screen.WorkingArea;
+        int x = Math.Clamp(_savedLocation.Value.X, area.Left, Math.Max(area.Left, area.Right - Width));
+        int y = Math.Clamp(_savedLocation.Value.Y, area.Top, Math.Max(area.Top, area.Bottom - Height));
+        Location = new Point(x, y);
+        PinTopmost();
+        return true;
+    }
+
+    private Screen ResolvePreferredScreen()
+    {
+        if (!string.IsNullOrWhiteSpace(_savedScreenDeviceName))
+        {
+            Screen? savedScreen = Screen.AllScreens.FirstOrDefault(screen =>
+                string.Equals(screen.DeviceName, _savedScreenDeviceName, StringComparison.OrdinalIgnoreCase));
+            if (savedScreen is not null)
+            {
+                return savedScreen;
+            }
+        }
+
+        if (_savedLocation is not null)
+        {
+            return Screen.FromPoint(_savedLocation.Value);
+        }
+
+        return Screen.FromRectangle(Bounds);
     }
 
     private static GraphicsPath RoundedRect(Rectangle bounds, int radius)
@@ -838,6 +904,8 @@ public sealed record WidgetThemeDefinition(
 {
     public bool IsSimple => string.Equals(Key, WidgetThemeOptions.Simple, StringComparison.OrdinalIgnoreCase);
 }
+
+public sealed record WidgetPositionChangedEventArgs(int Left, int Top, string ScreenDeviceName);
 
 public static class WidgetThemeCatalog
 {

@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <Content Include="Assets\Themes\*.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\Sounds\*.wav" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

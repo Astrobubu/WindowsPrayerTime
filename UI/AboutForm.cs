@@ -47,6 +47,7 @@ public sealed class AboutForm : Form
                 "Credits:\n" +
                 "- Prayer time data: AlAdhan Prayer Times API\n" +
                 "- Network location fallback: ipapi\n" +
+                "- Short Adhan cue: Beautiful adhan.ogg by Adam-synagda, CC0 1.0\n" +
                 "- Built with Windows Forms and .NET"
         };
         root.Controls.Add(about, 0, 1);

@@ -21,4 +21,5 @@ Windows Prayer Time fits that same spirit: a focused tool built around a real wo
 
 - Prayer time data: [AlAdhan Prayer Times API](https://aladhan.engconsults.com/rest-api.html)
 - Network-based location fallback: [ipapi](https://ipapi.co/)
+- Short Adhan cue: [Beautiful adhan.ogg](https://commons.wikimedia.org/wiki/File:Beautiful_adhan.ogg) by Adam-synagda, CC0 1.0
 - Built with: Windows Forms and .NET

@@ -28,6 +28,9 @@ public sealed class AppSettings
     public int AdhanLeadMinutes { get; set; } = 0;
     public bool ShowIqamahCountdownAfterAdhan { get; set; } = true;
     public string WidgetPlacement { get; set; } = WidgetPlacementOptions.AboveTaskbar;
+    public int? WidgetLeft { get; set; }
+    public int? WidgetTop { get; set; }
+    public string? WidgetScreenDeviceName { get; set; }
     public string WidgetTheme { get; set; } = WidgetThemeOptions.GoldDarkBlue;
     public Dictionary<string, WidgetThemeCustomization> WidgetThemeCustomizations { get; set; } = CreateDefaultWidgetThemeCustomizations();
     public Dictionary<string, int> IqamahOffsetsMinutes { get; set; } = CreateDefaultIqamahOffsets();

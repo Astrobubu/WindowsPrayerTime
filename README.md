@@ -88,6 +88,10 @@ Available settings:
 - PC activity threshold for assertive Iqamah reminders.
 - Start with Windows.
 
+## Audio Credit
+
+The bundled short Adhan cue is derived from [Beautiful adhan.ogg](https://commons.wikimedia.org/wiki/File:Beautiful_adhan.ogg) by Adam-synagda, released under CC0 1.0.
+
 Settings and cached timings are stored in:
 
 ```powershell

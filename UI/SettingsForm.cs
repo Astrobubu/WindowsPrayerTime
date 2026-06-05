@@ -452,6 +452,9 @@ public sealed class SettingsForm : Form
             AdhanLeadMinutes = settings.AdhanLeadMinutes,
             ShowIqamahCountdownAfterAdhan = settings.ShowIqamahCountdownAfterAdhan,
             WidgetPlacement = settings.WidgetPlacement,
+            WidgetLeft = settings.WidgetLeft,
+            WidgetTop = settings.WidgetTop,
+            WidgetScreenDeviceName = settings.WidgetScreenDeviceName,
             WidgetTheme = settings.WidgetTheme,
             WidgetThemeCustomizations = settings.WidgetThemeCustomizations.ToDictionary(
                 pair => pair.Key,

@@ -5,6 +5,8 @@ namespace WindowsPrayerTime.Services;
 
 public sealed class SoundService
 {
+    private static readonly string AdhanCuePath = Path.Combine(AppContext.BaseDirectory, "Assets", "Sounds", "adhan-cue.wav");
+
     public void PlayAdhanCue(AppSettings settings)
     {
         if (!settings.SoundEnabled)
@@ -12,7 +14,24 @@ public sealed class SoundService
             return;
         }
 
-        SystemSounds.Asterisk.Play();
+        if (File.Exists(AdhanCuePath))
+        {
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    using var player = new SoundPlayer(AdhanCuePath);
+                    player.PlaySync();
+                }
+                catch
+                {
+                    SystemSounds.Exclamation.Play();
+                }
+            });
+            return;
+        }
+
+        SystemSounds.Exclamation.Play();
     }
 
     public void PlayIqamahCue(AppSettings settings, bool userActive)
