@@ -90,7 +90,7 @@ Available settings:
 
 ## Audio Credit
 
-The bundled short Adhan cue is derived from [Beautiful adhan.ogg](https://commons.wikimedia.org/wiki/File:Beautiful_adhan.ogg) by Adam-synagda, released under CC0 1.0.
+The bundled Adhan cue is a 10-second clip generated from a user-provided MP3.
 
 Settings and cached timings are stored in:
 

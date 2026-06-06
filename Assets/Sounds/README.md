@@ -1,8 +1,7 @@
 # Sound Assets
 
-`adhan-cue.wav` is a 3-second cue generated from Wikimedia Commons file `Beautiful adhan.ogg`.
+`adhan-cue.wav` is a 10-second cue generated from a user-provided Adhan MP3.
 
-- Source: https://commons.wikimedia.org/wiki/File:Beautiful_adhan.ogg
-- Author: Adam-synagda
-- License: CC0 1.0 Universal Public Domain Dedication
-- Processing: silence trim, first 3 seconds, fade in/out, mono WAV, boosted volume for a clearer notification cue.
+- Source file: `dcc77fd7b6a1.mp3`
+- Processing: first 10 seconds, fade in/out, mono WAV.
+- Playback: used only when Adhan time is due and sound alerts are enabled.
